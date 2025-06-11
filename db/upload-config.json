@@ -1,0 +1,16 @@
+{
+  "maxConcurrentFiles": 3,
+  "maxConcurrentWorkflows": 1,
+  "chunkSize": "2MB",
+  "allowedFileTypes": [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "video/mp4",
+    "video/avi",
+    "video/mov"
+  ],
+  "maxFileSize": "500MB",
+  "retryAttempts": 3,
+  "retryDelay": 1000
+}
