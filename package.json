@@ -1,0 +1,44 @@
+{
+  "name": "ai-face-admin",
+  "version": "1.0.0",
+  "description": "AI人脸模型训练管理系统",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:full": "concurrently \"npm run dev\" \"npm run dev:frontend\" --names \"后端,前端\" --prefix-colors \"blue,green\"",
+    "build": "cd frontend && npm run build",
+    "install-frontend": "cd frontend && npm install",
+    "setup": "npm install && npm run install-frontend"
+  },
+  "dependencies": {
+    "archiver": "^6.0.1",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "fluent-ffmpeg": "^2.1.2",
+    "fs-extra": "^11.1.1",
+    "googleapis": "^126.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.2",
+    "sharp": "^0.32.6",
+    "socket.io": "^4.7.2",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "ai",
+    "face-training",
+    "runpod",
+    "vue3",
+    "element-plus"
+  ],
+  "author": "AI Face Admin Team",
+  "license": "MIT"
+}
