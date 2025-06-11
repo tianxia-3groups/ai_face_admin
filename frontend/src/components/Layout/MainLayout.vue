@@ -7,8 +7,20 @@
       </div>
       
       <div class="header-right">
+        <!-- 创建新训练按钮 -->
+        <el-button type="primary" @click="createWorkflow">
+          <el-icon><Plus /></el-icon>
+          创建新训练
+        </el-button>
+        
         <!-- 全局上传状态 -->
-        <!-- <GlobalUploadStatus /> -->
+        <div class="upload-status">
+          <el-badge :value="uploadStore.uploadingCount" :hidden="uploadStore.uploadingCount === 0">
+            <el-button text @click="toggleUploadPanel">
+              <el-icon><Upload /></el-icon>
+            </el-button>
+          </el-badge>
+        </div>
         
         <!-- 用户菜单 -->
         <el-dropdown>
@@ -48,6 +60,16 @@
             <el-icon><List /></el-icon>
             <span>流程中心</span>
           </el-menu-item>
+
+          <el-menu-item index="/upload-queue">
+            <el-icon><Upload /></el-icon>
+            <span>上传队列</span>
+          </el-menu-item>
+
+          <el-menu-item index="/settings">
+            <el-icon><Setting /></el-icon>
+            <span>系统设置</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
 
@@ -65,11 +87,13 @@
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
 import { ElMessageBox } from 'element-plus'
-import { UserFilled, ArrowDown, SwitchButton, Monitor, List } from '@element-plus/icons-vue'
+import { UserFilled, ArrowDown, SwitchButton, Monitor, List, Plus, Upload, Setting } from '@element-plus/icons-vue'
+import { useUploadStore } from '@/store/upload'
 // import GlobalUploadStatus from '@/components/Upload/GlobalUploadStatus.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const uploadStore = useUploadStore()
 
 const handleLogout = async () => {
   try {
@@ -84,6 +108,14 @@ const handleLogout = async () => {
   } catch (error) {
     // 用户取消
   }
+}
+
+const createWorkflow = () => {
+  router.push('/workflows/create')
+}
+
+const toggleUploadPanel = () => {
+  router.push('/upload-queue')
 }
 </script>
 

@@ -3,16 +3,20 @@
     <!-- 欢迎区域 -->
     <div class="welcome-section">
       <div class="welcome-content">
-        <h1>AI训练管理系统</h1>
+        <h1>
+          <el-icon class="title-icon"><Star /></el-icon>
+          AI训练管理系统
+        </h1>
         <p class="welcome-text">
-          欢迎回来！当前有 <strong>{{ stats.running }}</strong> 个流程正在运行，
-          <strong>{{ stats.waiting }}</strong> 个流程等待中。
+          欢迎回来！当前有 <strong class="highlight">{{ stats.running }}</strong> 个流程正在运行，
+          <strong class="highlight">{{ stats.waiting }}</strong> 个流程等待中。
         </p>
         <div class="quick-actions">
           <el-button 
             type="primary" 
             size="large"
             icon="Plus"
+            class="action-btn primary-btn"
             @click="createWorkflow"
           >
             创建新训练
@@ -20,6 +24,7 @@
           <el-button 
             size="large"
             icon="FolderOpened"
+            class="action-btn secondary-btn"
             @click="goToWorkflows"
           >
             流程中心
@@ -31,8 +36,9 @@
           <el-progress 
             type="circle" 
             :percentage="systemProgress"
-            :width="120"
+            :width="100"
             :stroke-width="8"
+            color="#ffc107"
           >
             <template #default="{ percentage }">
               <span class="progress-text">{{ percentage }}%</span>
@@ -40,14 +46,19 @@
             </template>
           </el-progress>
         </div>
+        <div class="visual-decoration">
+          <div class="floating-dot dot-1"></div>
+          <div class="floating-dot dot-2"></div>
+          <div class="floating-dot dot-3"></div>
+        </div>
       </div>
     </div>
 
     <!-- 统计卡片 -->
     <div class="stats-section">
-      <el-row :gutter="20">
+      <el-row :gutter="24">
         <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card">
+          <div class="stat-card running-card">
             <div class="stat-icon running">
               <el-icon><VideoPlay /></el-icon>
             </div>
@@ -55,10 +66,13 @@
               <div class="stat-number">{{ stats.running }}</div>
               <div class="stat-label">运行中</div>
             </div>
+            <div class="stat-trend">
+              <el-icon class="trend-icon"><TrendCharts /></el-icon>
+            </div>
           </div>
         </el-col>
         <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card">
+          <div class="stat-card waiting-card">
             <div class="stat-icon waiting">
               <el-icon><Clock /></el-icon>
             </div>
@@ -66,10 +80,13 @@
               <div class="stat-number">{{ stats.waiting }}</div>
               <div class="stat-label">等待中</div>
             </div>
+            <div class="stat-trend">
+              <el-icon class="trend-icon"><Minus /></el-icon>
+            </div>
           </div>
         </el-col>
         <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card">
+          <div class="stat-card completed-card">
             <div class="stat-icon completed">
               <el-icon><Check /></el-icon>
             </div>
@@ -77,10 +94,13 @@
               <div class="stat-number">{{ stats.completed }}</div>
               <div class="stat-label">已完成</div>
             </div>
+            <div class="stat-trend">
+              <el-icon class="trend-icon"><TrendCharts /></el-icon>
+            </div>
           </div>
         </el-col>
         <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card">
+          <div class="stat-card total-card">
             <div class="stat-icon total">
               <el-icon><Folder /></el-icon>
             </div>
@@ -88,23 +108,34 @@
               <div class="stat-number">{{ stats.total }}</div>
               <div class="stat-label">总流程</div>
             </div>
+            <div class="stat-trend">
+              <el-icon class="trend-icon"><TrendCharts /></el-icon>
+            </div>
           </div>
         </el-col>
       </el-row>
     </div>
 
     <!-- 主要内容区 -->
-    <el-row :gutter="20" class="main-content">
+    <el-row :gutter="24" class="main-content">
       <!-- 活跃流程 -->
       <el-col :xs="24" :lg="14">
-        <el-card class="content-card" shadow="never">
+        <el-card class="content-card workflow-card" shadow="never">
           <template #header>
             <div class="card-header">
               <div class="header-left">
-                <el-icon><VideoPlay /></el-icon>
-                <span>活跃流程</span>
+                <div class="header-icon">
+                  <el-icon><VideoPlay /></el-icon>
+                </div>
+                <div class="header-info">
+                  <span class="header-title">活跃流程</span>
+                  <span class="header-subtitle">{{ activeWorkflows.length }} 个正在运行</span>
+                </div>
               </div>
-              <el-button text @click="goToWorkflows">查看全部</el-button>
+              <el-button type="primary" link @click="goToWorkflows">
+                查看全部
+                <el-icon class="ml-1"><ArrowRight /></el-icon>
+              </el-button>
             </div>
           </template>
           
@@ -116,26 +147,42 @@
               @click="viewWorkflow(workflow.id)"
             >
               <div class="workflow-info">
-                <div class="workflow-name">{{ workflow.name }}</div>
+                <div class="workflow-name">
+                  <span class="name-text">{{ workflow.name }}</span>
+                  <el-tag :type="getStatusType(workflow.status)" size="small" class="status-tag">
+                    {{ getStatusText(workflow.status) }}
+                  </el-tag>
+                </div>
                 <div class="workflow-meta">
-                  <WorkflowStatus :status="workflow.status" />
-                  <span class="workflow-time">{{ formatTime(workflow.updatedAt) }}</span>
+                  <span class="workflow-time">
+                    <el-icon><Clock /></el-icon>
+                    {{ formatTime(workflow.updatedAt) }}
+                  </span>
                 </div>
               </div>
               <div class="workflow-progress">
+                <div class="progress-info">
+                  <span class="progress-percent">{{ workflow.progress }}%</span>
+                </div>
                 <el-progress 
                   :percentage="workflow.progress" 
                   :status="getProgressStatus(workflow.status)"
                   :stroke-width="6"
+                  :show-text="false"
                 />
-                <div class="progress-text">{{ workflow.progress }}%</div>
               </div>
             </div>
             
             <div v-if="activeWorkflows.length === 0" class="empty-state">
-              <el-icon size="48" color="#C0C4CC"><VideoPlay /></el-icon>
-              <p>暂无活跃流程</p>
-              <el-button type="primary" @click="createWorkflow">创建第一个流程</el-button>
+              <div class="empty-icon">
+                <el-icon size="64"><VideoPlay /></el-icon>
+              </div>
+              <h3>暂无活跃流程</h3>
+              <p>开始您的第一个AI训练流程</p>
+              <el-button type="primary" class="create-btn" @click="createWorkflow">
+                <el-icon><Plus /></el-icon>
+                创建第一个流程
+              </el-button>
             </div>
           </div>
         </el-card>
@@ -144,14 +191,23 @@
       <!-- 侧边栏 -->
       <el-col :xs="24" :lg="10">
         <!-- 上传队列 -->
-        <el-card class="content-card upload-queue" shadow="never">
+        <el-card class="content-card upload-card" shadow="never">
           <template #header>
             <div class="card-header">
               <div class="header-left">
-                <el-icon><Upload /></el-icon>
-                <span>上传队列</span>
+                <div class="header-icon upload-icon">
+                  <el-icon><Upload /></el-icon>
+                </div>
+                <div class="header-info">
+                  <span class="header-title">上传队列</span>
+                  <span class="header-subtitle">{{ uploadStats.uploading + uploadStats.waiting }} 个任务</span>
+                </div>
               </div>
-              <el-tag :type="uploadQueueStatus.type" size="small">
+              <el-tag 
+                :type="uploadQueueStatus.type" 
+                size="small"
+                :class="['status-badge', uploadQueueStatus.type]"
+              >
                 {{ uploadQueueStatus.text }}
               </el-tag>
             </div>
@@ -160,39 +216,63 @@
           <div class="upload-summary">
             <div class="upload-stats">
               <div class="upload-stat">
-                <span class="label">等待上传</span>
-                <span class="value">{{ uploadStats.waiting }}</span>
+                <div class="stat-icon-mini waiting">
+                  <el-icon><Clock /></el-icon>
+                </div>
+                <div class="stat-info">
+                  <span class="value">{{ uploadStats.waiting }}</span>
+                  <span class="label">等待上传</span>
+                </div>
               </div>
               <div class="upload-stat">
-                <span class="label">正在上传</span>
-                <span class="value">{{ uploadStats.uploading }}</span>
+                <div class="stat-icon-mini uploading">
+                  <el-icon><Loading /></el-icon>
+                </div>
+                <div class="stat-info">
+                  <span class="value">{{ uploadStats.uploading }}</span>
+                  <span class="label">正在上传</span>
+                </div>
               </div>
               <div class="upload-stat">
-                <span class="label">已完成</span>
-                <span class="value">{{ uploadStats.completed }}</span>
+                <div class="stat-icon-mini completed">
+                  <el-icon><Check /></el-icon>
+                </div>
+                <div class="stat-info">
+                  <span class="value">{{ uploadStats.completed }}</span>
+                  <span class="label">已完成</span>
+                </div>
               </div>
             </div>
             
             <div v-if="uploadStats.uploading > 0" class="upload-progress">
+              <div class="progress-header">
+                <span class="progress-title">总体进度</span>
+                <span class="progress-value">{{ globalUploadProgress }}%</span>
+              </div>
               <el-progress 
                 :percentage="globalUploadProgress"
                 :stroke-width="8"
                 :show-text="false"
+                color="#409eff"
               />
-              <span class="progress-label">总体进度 {{ globalUploadProgress }}%</span>
             </div>
           </div>
         </el-card>
 
         <!-- 系统状态 -->
-        <el-card class="content-card system-status" shadow="never">
+        <el-card class="content-card system-card" shadow="never">
           <template #header>
             <div class="card-header">
               <div class="header-left">
-                <el-icon><Monitor /></el-icon>
-                <span>系统状态</span>
+                <div class="header-icon system-icon">
+                  <el-icon><Monitor /></el-icon>
+                </div>
+                <div class="header-info">
+                  <span class="header-title">系统状态</span>
+                  <span class="header-subtitle">实时监控</span>
+                </div>
               </div>
-              <el-button text @click="refreshSystemStatus">
+              <el-button text @click="refreshSystemStatus" class="refresh-btn">
                 <el-icon><Refresh /></el-icon>
               </el-button>
             </div>
@@ -200,39 +280,56 @@
           
           <div class="system-metrics">
             <div class="metric-item">
-              <div class="metric-label">GPU使用率</div>
+              <div class="metric-header">
+                <span class="metric-label">GPU使用率</span>
+                <span class="metric-value">{{ systemStatus.gpu }}%</span>
+              </div>
               <el-progress 
                 :percentage="systemStatus.gpu" 
-                :stroke-width="6"
+                :stroke-width="8"
                 :status="systemStatus.gpu > 80 ? 'exception' : null"
+                :show-text="false"
               />
             </div>
             <div class="metric-item">
-              <div class="metric-label">内存使用</div>
+              <div class="metric-header">
+                <span class="metric-label">内存使用</span>
+                <span class="metric-value">{{ systemStatus.memory }}%</span>
+              </div>
               <el-progress 
                 :percentage="systemStatus.memory"
-                :stroke-width="6"
+                :stroke-width="8"
                 :status="systemStatus.memory > 90 ? 'exception' : null"
+                :show-text="false"
               />
             </div>
             <div class="metric-item">
-              <div class="metric-label">存储空间</div>
+              <div class="metric-header">
+                <span class="metric-label">存储空间</span>
+                <span class="metric-value">{{ systemStatus.disk }}%</span>
+              </div>
               <el-progress 
                 :percentage="systemStatus.disk"
-                :stroke-width="6" 
+                :stroke-width="8" 
                 :status="systemStatus.disk > 85 ? 'exception' : null"
+                :show-text="false"
               />
             </div>
           </div>
         </el-card>
 
         <!-- 最近活动 -->
-        <el-card class="content-card recent-activity" shadow="never">
+        <el-card class="content-card activity-card" shadow="never">
           <template #header>
             <div class="card-header">
               <div class="header-left">
-                <el-icon><Bell /></el-icon>
-                <span>最近活动</span>
+                <div class="header-icon activity-icon">
+                  <el-icon><Bell /></el-icon>
+                </div>
+                <div class="header-info">
+                  <span class="header-title">最近活动</span>
+                  <span class="header-subtitle">系统动态</span>
+                </div>
               </div>
             </div>
           </template>
@@ -255,6 +352,9 @@
             </div>
             
             <div v-if="recentActivities.length === 0" class="empty-activity">
+              <div class="empty-icon">
+                <el-icon size="48"><Bell /></el-icon>
+              </div>
               <p>暂无最近活动</p>
             </div>
           </div>
@@ -265,80 +365,53 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Plus, FolderOpened, VideoPlay, Clock, Check, Folder, Upload, 
-  Monitor, Refresh, Bell, CircleCheck, Warning, CircleClose 
+  Monitor, Refresh, Bell, CircleCheck, Warning, CircleClose,
+  Star, TrendCharts, Minus, ArrowRight, Loading
 } from '@element-plus/icons-vue'
 import WorkflowStatus from '@/components/WorkflowStatus.vue'
+import { useWorkflowStore } from '@/store/workflow'
+import { useDashboardStore } from '@/store/dashboard'
+import { useUploadStore } from '@/store/upload'
+import { workflowApi } from '@/api/workflow'
+import { request } from '@/utils/request'
 
 const router = useRouter()
+const workflowStore = useWorkflowStore()
+const dashboardStore = useDashboardStore()
+const uploadStore = useUploadStore()
+const $socket = inject('$socket')
 
 // 统计数据
 const stats = reactive({
-  running: 2,
-  waiting: 3,
-  completed: 15,
-  total: 20
+  running: 0,
+  waiting: 0,
+  completed: 0,
+  total: 0
 })
 
 // 上传统计
 const uploadStats = reactive({
-  waiting: 5,
-  uploading: 2,
-  completed: 18
+  waiting: 0,
+  uploading: 0,
+  completed: 0
 })
 
 // 系统状态
 const systemStatus = reactive({
-  gpu: 65,
-  memory: 72,
-  disk: 45
+  gpu: 0,
+  memory: 0,
+  disk: 0
 })
 
 // 活跃流程
-const activeWorkflows = ref([
-  {
-    id: 'wf_001',
-    name: '人物肖像训练_001',
-    status: 'training_progress',
-    progress: 65,
-    updatedAt: new Date(Date.now() - 1800000) // 30分钟前
-  },
-  {
-    id: 'wf_002',
-    name: '风景照片训练_002',
-    status: 'processing_materials',
-    progress: 25,
-    updatedAt: new Date(Date.now() - 600000) // 10分钟前
-  }
-])
+const activeWorkflows = ref([])
 
 // 最近活动
-const recentActivities = ref([
-  {
-    id: 1,
-    type: 'success',
-    icon: CircleCheck,
-    text: '人物肖像训练_001 训练阶段完成',
-    time: new Date(Date.now() - 300000) // 5分钟前
-  },
-  {
-    id: 2,
-    type: 'info',
-    icon: Upload,
-    text: '风景照片训练_002 开始上传素材',
-    time: new Date(Date.now() - 900000) // 15分钟前
-  },
-  {
-    id: 3,
-    type: 'warning',
-    icon: Warning,
-    text: '系统GPU使用率较高，建议关注',
-    time: new Date(Date.now() - 1200000) // 20分钟前
-  }
-])
+const recentActivities = ref([])
 
 // 计算属性
 const systemProgress = computed(() => {
@@ -400,52 +473,211 @@ const formatTime = (date) => {
   }
 }
 
-const refreshSystemStatus = () => {
-  // TODO: 刷新系统状态
-  console.log('刷新系统状态')
+const refreshSystemStatus = async () => {
+  try {
+    const response = await request.get('/api/system/status')
+    Object.assign(systemStatus, response)
+  } catch (error) {
+    console.error('刷新系统状态失败:', error)
+  }
 }
 
 const loadDashboardData = async () => {
   try {
-    // TODO: 加载仪表板数据
-    console.log('加载仪表板数据')
+    // 加载工作流数据
+    await workflowStore.fetchWorkflows()
+    
+    // 计算统计数据
+    const workflows = workflowStore.workflows || []
+    stats.total = workflows.length
+    stats.running = workflows.filter(w => ['TRAINING', 'PROCESSING', 'UPLOADING'].includes(w.status)).length
+    stats.waiting = workflows.filter(w => ['CREATED', 'MATERIALS_READY', 'CONFIGURING'].includes(w.status)).length
+    stats.completed = workflows.filter(w => w.status === 'COMPLETED').length
+    
+    // 获取活跃流程（非完成状态的前5个）
+    activeWorkflows.value = workflows
+      .filter(w => w.status !== 'COMPLETED' && w.status !== 'CANCELLED')
+      .slice(0, 5)
+      .map(w => ({
+        id: w.id,
+        name: w.name,
+        status: w.status,
+        progress: w.progress?.current || 0,
+        updatedAt: w.updatedAt ? new Date(w.updatedAt) : new Date()
+      }))
+    
+    // 加载上传队列数据
+    const uploadTasks = uploadStore.tasks || []
+    uploadStats.total = uploadTasks.length
+    uploadStats.uploading = uploadTasks.filter(t => t.status === 'uploading').length
+    uploadStats.waiting = uploadTasks.filter(t => t.status === 'waiting').length
+    uploadStats.completed = uploadTasks.filter(t => t.status === 'completed').length
+    
+    // 加载系统状态
+    await refreshSystemStatus()
+    
+    // 模拟最近活动（实际项目中应该从API获取）
+    recentActivities.value = [
+      {
+        id: 1,
+        type: 'success',
+        icon: CircleCheck,
+        text: '工作流状态更新',
+        time: new Date(Date.now() - 300000)
+      },
+      {
+        id: 2,
+        type: 'info', 
+        icon: Upload,
+        text: '文件上传完成',
+        time: new Date(Date.now() - 600000)
+      }
+    ]
+    
   } catch (error) {
-    console.error('加载数据失败:', error)
+    console.error('加载仪表板数据失败:', error)
   }
+}
+
+// Socket.IO事件处理
+const handleWorkflowUpdate = (data) => {
+  // 更新工作流状态
+  const workflow = activeWorkflows.value.find(w => w.id === data.workflowId)
+  if (workflow) {
+    workflow.status = data.status
+    workflow.progress = data.progress || workflow.progress
+  }
+  
+  // 重新计算统计数据
+  loadDashboardData()
+}
+
+const handleUploadProgress = (data) => {
+  // 更新上传进度
+  uploadStats.uploading = data.uploading || uploadStats.uploading
+  uploadStats.completed = data.completed || uploadStats.completed
+}
+
+// 新增方法
+const getStatusType = (status) => {
+  switch (status) {
+    case 'TRAINING':
+    case 'PROCESSING':
+      return 'primary'
+    case 'COMPLETED':
+      return 'success'
+    case 'FAILED':
+      return 'danger'
+    case 'MATERIALS_READY':
+    case 'CONFIGURING':
+      return 'warning'
+    default:
+      return 'info'
+  }
+}
+
+const getStatusText = (status) => {
+  const statusMap = {
+    'TRAINING': '训练中',
+    'PROCESSING': '处理中',
+    'COMPLETED': '已完成',
+    'FAILED': '失败',
+    'MATERIALS_READY': '准备中',
+    'CONFIGURING': '配置中',
+    'CREATED': '已创建'
+  }
+  return statusMap[status] || status
 }
 
 // 生命周期
 onMounted(() => {
   loadDashboardData()
+  
+  // 设置定时刷新
+  const interval = setInterval(loadDashboardData, 30000) // 30秒刷新一次
+  
+  // 监听Socket.IO事件
+  if ($socket) {
+    $socket.onWorkflowStatusUpdate(handleWorkflowUpdate)
+    $socket.onUploadProgress(handleUploadProgress)
+  }
+  
+  // 清理定时器
+  onUnmounted(() => {
+    clearInterval(interval)
+    if ($socket) {
+      $socket.off('workflow-status-update', handleWorkflowUpdate)
+      $socket.off('upload-progress', handleUploadProgress)
+    }
+  })
 })
 </script>
 
 <style scoped>
 .dashboard {
-  padding: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 .welcome-section {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
-  padding: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  margin-bottom: 20px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
   border-radius: 12px;
   color: white;
+  box-shadow: 0 8px 25px rgba(79, 70, 229, 0.15);
+  overflow: hidden;
+}
+
+.welcome-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid)" /></svg>') repeat;
+  opacity: 0.5;
+}
+
+.welcome-content {
+  position: relative;
+  z-index: 1;
 }
 
 .welcome-content h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.title-icon {
   font-size: 28px;
-  font-weight: 600;
+  color: #fbbf24;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .welcome-text {
-  margin: 0 0 20px 0;
-  font-size: 16px;
-  opacity: 0.9;
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  opacity: 0.95;
+  line-height: 1.4;
+}
+
+.highlight {
+  color: #fbbf24;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .quick-actions {
@@ -453,9 +685,41 @@ onMounted(() => {
   gap: 12px;
 }
 
+.action-btn {
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 8px 16px;
+  transition: all 0.3s ease;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+}
+
+.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.6);
+}
+
+.secondary-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
 .welcome-visual {
+  position: relative;
   display: flex;
   align-items: center;
+  z-index: 1;
 }
 
 .status-ring :deep(.el-progress-circle__text) {
@@ -465,65 +729,141 @@ onMounted(() => {
 }
 
 .progress-text {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: white;
   line-height: 1;
 }
 
 .progress-label {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
-  margin-top: 4px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 2px;
+}
+
+.visual-decoration {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.floating-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  animation: float 3s ease-in-out infinite;
+}
+
+.dot-1 {
+  top: -60px;
+  left: -60px;
+  animation-delay: 0s;
+}
+
+.dot-2 {
+  top: -40px;
+  right: -80px;
+  animation-delay: 1s;
+}
+
+.dot-3 {
+  bottom: -50px;
+  left: -40px;
+  animation-delay: 2s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
 .stats-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .stat-card {
+  position: relative;
   display: flex;
   align-items: center;
-  padding: 20px;
+  padding: 16px;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--card-color), var(--card-color-light));
+}
+
+.running-card {
+  --card-color: #3b82f6;
+  --card-color-light: #60a5fa;
+}
+
+.waiting-card {
+  --card-color: #f59e0b;
+  --card-color-light: #fbbf24;
+}
+
+.completed-card {
+  --card-color: #10b981;
+  --card-color-light: #34d399;
+}
+
+.total-card {
+  --card-color: #8b5cf6;
+  --card-color-light: #a78bfa;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 16px;
-  font-size: 24px;
+  margin-right: 12px;
+  font-size: 20px;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .stat-icon.running {
-  background: #e8f4fd;
-  color: #409eff;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #3b82f6;
 }
 
 .stat-icon.waiting {
-  background: #fdf6ec;
-  color: #e6a23c;
+  background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+  color: #f59e0b;
 }
 
 .stat-icon.completed {
-  background: #f0f9ff;
-  color: #67c23a;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #10b981;
 }
 
 .stat-icon.total {
-  background: #f4f4f5;
-  color: #909399;
+  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+  color: #8b5cf6;
 }
 
 .stat-content {
@@ -531,33 +871,56 @@ onMounted(() => {
 }
 
 .stat-number {
-  font-size: 24px;
-  font-weight: 600;
-  color: #303133;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
   line-height: 1;
   margin-bottom: 4px;
 }
 
 .stat-label {
-  font-size: 14px;
-  color: #909399;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.stat-trend {
+  display: flex;
+  align-items: center;
+  color: #10b981;
+}
+
+.trend-icon {
+  font-size: 20px;
 }
 
 .main-content {
-  margin-top: 24px;
+  margin-top: 20px;
 }
 
 .content-card {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.content-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
 }
 
 .content-card :deep(.el-card__header) {
-  padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
+  border-radius: 12px 12px 0 0;
 }
 
 .content-card :deep(.el-card__body) {
-  padding: 20px;
+  padding: 16px;
 }
 
 .card-header {
@@ -569,8 +932,56 @@ onMounted(() => {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+}
+
+.header-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  color: #6366f1;
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.15);
+}
+
+.upload-icon {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #3b82f6;
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.15);
+}
+
+.system-icon {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #10b981;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.15);
+}
+
+.activity-icon {
+  background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+  color: #f59e0b;
+  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.15);
+}
+
+.header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.header-title {
+  font-size: 14px;
   font-weight: 600;
+  color: #1f2937;
+}
+
+.header-subtitle {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
 }
 
 .workflow-list {
@@ -581,17 +992,18 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .workflow-item:hover {
-  background-color: #fafafa;
-  margin: 0 -20px;
-  padding: 16px 20px;
-  border-radius: 6px;
+  background-color: #f8fafc;
+  margin: 0 -16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  transform: translateX(2px);
 }
 
 .workflow-item:last-child {
@@ -603,42 +1015,82 @@ onMounted(() => {
 }
 
 .workflow-name {
-  font-size: 16px;
-  font-weight: 500;
-  color: #303133;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 8px;
+}
+
+.name-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.status-tag {
+  font-weight: 500;
+  border-radius: 4px;
+  font-size: 11px;
 }
 
 .workflow-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
 }
 
 .workflow-time {
-  font-size: 12px;
-  color: #909399;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
 }
 
 .workflow-progress {
-  width: 160px;
+  width: 140px;
   text-align: right;
 }
 
-.progress-text {
+.progress-info {
+  margin-bottom: 6px;
+}
+
+.progress-percent {
   font-size: 12px;
-  color: #909399;
-  margin-top: 4px;
+  color: #1f2937;
+  font-weight: 600;
 }
 
 .empty-state {
   text-align: center;
   padding: 40px 20px;
-  color: #909399;
+  color: #6b7280;
+}
+
+.empty-icon {
+  margin-bottom: 16px;
+  color: #d1d5db;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
 }
 
 .empty-state p {
-  margin: 16px 0 20px 0;
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.create-btn {
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 8px 16px;
 }
 
 .upload-summary {
@@ -649,92 +1101,223 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   margin-bottom: 16px;
+  gap: 12px;
 }
 
 .upload-stat {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  flex: 1;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
 }
 
-.upload-stat .label {
+.upload-stat:hover {
+  background: #f1f5f9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.stat-icon-mini {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12px;
-  color: #909399;
+  flex-shrink: 0;
 }
 
-.upload-stat .value {
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
+.stat-icon-mini.waiting {
+  background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+  color: #f59e0b;
+}
+
+.stat-icon-mini.uploading {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #3b82f6;
+}
+
+.stat-icon-mini.completed {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #10b981;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.stat-info .value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.stat-info .label {
+  font-size: 10px;
+  color: #6b7280;
+  font-weight: 500;
 }
 
 .upload-progress {
-  text-align: center;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 
-.progress-label {
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.progress-title {
   font-size: 12px;
-  color: #909399;
-  margin-top: 8px;
+  color: #374151;
+  font-weight: 600;
+}
+
+.progress-value {
+  font-size: 12px;
+  color: #3b82f6;
+  font-weight: 700;
+}
+
+.status-badge {
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.status-badge.primary {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1d4ed8;
+  border: 1px solid #3b82f6;
+}
+
+.status-badge.warning {
+  background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.status-badge.success {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+  border: 1px solid #10b981;
 }
 
 .system-metrics {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .metric-item {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.metric-item:hover {
+  background: #f1f5f9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .metric-label {
-  font-size: 14px;
-  color: #606266;
-  font-weight: 500;
+  font-size: 12px;
+  color: #374151;
+  font-weight: 600;
+}
+
+.metric-value {
+  font-size: 12px;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.refresh-btn {
+  color: #6b7280;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+  color: #3b82f6;
+  transform: rotate(180deg);
 }
 
 .activity-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-height: 300px;
+  gap: 10px;
+  max-height: 200px;
   overflow-y: auto;
 }
 
 .activity-item {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 8px;
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.activity-item:hover {
+  background: #f1f5f9;
+  transform: translateY(-1px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .activity-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 16px;
+  font-size: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .activity-icon.success {
-  background: #f0f9ff;
-  color: #67c23a;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #059669;
 }
 
 .activity-icon.info {
-  background: #e8f4fd;
-  color: #409eff;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #2563eb;
 }
 
 .activity-icon.warning {
-  background: #fdf6ec;
-  color: #e6a23c;
+  background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+  color: #d97706;
 }
 
 .activity-content {
@@ -742,41 +1325,109 @@ onMounted(() => {
 }
 
 .activity-text {
-  font-size: 14px;
-  color: #303133;
+  font-size: 12px;
+  color: #1f2937;
   margin-bottom: 4px;
+  font-weight: 500;
+  line-height: 1.3;
 }
 
 .activity-time {
-  font-size: 12px;
-  color: #909399;
+  font-size: 10px;
+  color: #6b7280;
+  font-weight: 500;
 }
 
 .empty-activity {
   text-align: center;
-  padding: 20px;
-  color: #909399;
+  padding: 30px 20px;
+  color: #6b7280;
+}
+
+.empty-activity .empty-icon {
+  margin-bottom: 12px;
+  color: #d1d5db;
+}
+
+.empty-activity p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.ml-1 {
+  margin-left: 4px;
 }
 
 @media (max-width: 768px) {
   .dashboard {
-    padding: 10px;
+    padding: 12px;
+    background: #f8fafc;
   }
   
   .welcome-section {
     flex-direction: column;
     text-align: center;
-    gap: 20px;
+    gap: 16px;
+    padding: 16px;
+  }
+  
+  .welcome-content h1 {
+    font-size: 20px;
   }
   
   .welcome-visual {
     order: -1;
   }
   
+  .visual-decoration {
+    display: none;
+  }
+  
+  .stats-section {
+    margin-bottom: 24px;
+  }
+  
+  .stat-card {
+    padding: 20px;
+  }
+  
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+    margin-right: 16px;
+  }
+  
+  .stat-number {
+    font-size: 24px;
+  }
+  
+  .main-content {
+    margin-top: 24px;
+  }
+  
+  .content-card {
+    margin-bottom: 20px;
+  }
+  
+  .content-card :deep(.el-card__header) {
+    padding: 16px 20px;
+  }
+  
+  .content-card :deep(.el-card__body) {
+    padding: 20px;
+  }
+  
   .workflow-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 16px;
+    padding: 16px 0;
+  }
+  
+  .workflow-item:hover {
+    margin: 0 -20px;
+    padding: 16px 20px;
   }
   
   .workflow-progress {
@@ -786,12 +1437,88 @@ onMounted(() => {
   
   .upload-stats {
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+    margin-bottom: 16px;
   }
   
   .upload-stat {
-    flex-direction: row;
-    justify-content: space-between;
+    padding: 12px;
+  }
+  
+  .system-metrics {
+    gap: 16px;
+  }
+  
+  .metric-item {
+    padding: 12px;
+  }
+  
+  .activity-list {
+    gap: 12px;
+    max-height: 250px;
+  }
+  
+  .activity-item {
+    padding: 10px;
+  }
+  
+  .activity-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard {
+    padding: 12px;
+  }
+  
+  .welcome-section {
+    padding: 20px 16px;
+  }
+  
+  .welcome-content h1 {
+    font-size: 24px;
+  }
+  
+  .quick-actions {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+  
+  .action-btn {
+    width: 100%;
+  }
+  
+  .stat-card {
+    padding: 16px;
+  }
+  
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    margin-right: 12px;
+  }
+  
+  .stat-number {
+    font-size: 20px;
+  }
+  
+  .header-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .header-title {
+    font-size: 14px;
+  }
+  
+  .header-subtitle {
+    font-size: 11px;
   }
 }
 </style> 

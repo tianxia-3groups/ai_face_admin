@@ -24,6 +24,98 @@ const WORKFLOW_STATUS = {
 };
 
 /**
+ * 获取仪表板数据
+ */
+router.get('/dashboard', async (req, res) => {
+  try {
+    const workflowsDir = path.join(process.cwd(), 'db/workflows');
+    await fs.ensureDir(workflowsDir);
+    
+    const files = await fs.readdir(workflowsDir);
+    const workflows = [];
+    
+    for (const file of files) {
+      if (file.endsWith('.json')) {
+        const workflowPath = path.join(workflowsDir, file);
+        const workflow = await fs.readJson(workflowPath);
+        workflows.push(workflow);
+      }
+    }
+    
+    // 计算统计数据
+    const stats = {
+      total: workflows.length,
+      running: workflows.filter(w => ['TRAINING', 'PROCESSING', 'UPLOADING'].includes(w.status)).length,
+      waiting: workflows.filter(w => ['CREATED', 'MATERIALS_READY', 'CONFIGURING'].includes(w.status)).length,
+      completed: workflows.filter(w => w.status === 'COMPLETED').length,
+      failed: workflows.filter(w => w.status === 'TRAINING_FAILED').length
+    };
+    
+    // 获取活跃工作流（非完成状态的最新5个）
+    const activeWorkflows = workflows
+      .filter(w => w.status !== 'COMPLETED' && w.status !== 'CANCELLED')
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+      .slice(0, 5)
+      .map(w => ({
+        id: w.id,
+        name: w.name,
+        status: w.status,
+        progress: w.progress?.current || 0,
+        updatedAt: w.updatedAt
+      }));
+    
+    // 获取最近活动（最新的状态变更记录）
+    const recentActivities = [];
+    workflows.forEach(w => {
+      if (w.statusHistory && w.statusHistory.length > 0) {
+        const latestStatus = w.statusHistory[w.statusHistory.length - 1];
+        recentActivities.push({
+          id: `${w.id}_${latestStatus.timestamp}`,
+          workflowId: w.id,
+          workflowName: w.name,
+          type: getActivityType(latestStatus.status),
+          message: latestStatus.message,
+          timestamp: latestStatus.timestamp
+        });
+      }
+    });
+    
+    // 按时间排序，取最新10条
+    recentActivities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const activities = recentActivities.slice(0, 10);
+    
+    res.json({
+      success: true,
+      data: {
+        stats,
+        activeWorkflows,
+        recentActivities: activities
+      }
+    });
+    
+  } catch (error) {
+    logger.error('获取仪表板数据错误:', error);
+    res.status(500).json({ 
+      error: '服务器错误', 
+      message: '获取仪表板数据失败' 
+    });
+  }
+});
+
+/**
+ * 获取活动类型
+ */
+function getActivityType(status) {
+  const typeMap = {
+    'COMPLETED': 'success',
+    'TRAINING_FAILED': 'error',
+    'TRAINING': 'info',
+    'PROCESSING': 'warning'
+  };
+  return typeMap[status] || 'info';
+}
+
+/**
  * 获取所有工作流列表
  */
 router.get('/', async (req, res) => {

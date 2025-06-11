@@ -9,6 +9,10 @@ const routes = [
     meta: { requiresGuest: true }
   },
   {
+    path: '/workflow/:pathMatch(.*)*',
+    redirect: to => `/workflows/${to.params.pathMatch}`
+  },
+  {
     path: '/',
     name: 'Layout',
     component: () => import('@/components/Layout/MainLayout.vue'),
@@ -53,6 +57,18 @@ const routes = [
         component: () => import('@/views/Training.vue'),
         meta: { title: '训练管理' },
         props: true
+      },
+      {
+        path: '/upload-queue',
+        name: 'UploadQueue',
+        component: () => import('@/views/UploadQueue.vue'),
+        meta: { title: '上传队列' }
+      },
+      {
+        path: '/settings',
+        name: 'Settings',
+        component: () => import('@/views/Settings.vue'),
+        meta: { title: '系统设置' }
       }
     ]
   },
@@ -69,7 +85,7 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   // 避免死循环检查
   if (from.path === to.path) {
     next()
@@ -78,10 +94,19 @@ router.beforeEach((to, from, next) => {
 
   const authStore = useAuthStore()
   
+  // 如果是首次访问需要认证的页面，先检查认证状态
+  if (to.meta.requiresAuth && !authStore.isLoggedIn && from.name === undefined) {
+    try {
+      await authStore.checkAuthStatus()
+    } catch (error) {
+      console.warn('路由守卫中认证检查失败', error)
+    }
+  }
+  
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     next('/login')
   } else if (to.meta.requiresGuest && authStore.isLoggedIn) {
-    next('/')
+    next('/dashboard')
   } else {
     next()
   }

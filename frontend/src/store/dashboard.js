@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { workflowApi } from '@/api/workflow'
-import { uploadApi } from '@/api/upload'
+import { getUploadStats } from '@/api/upload'
 import { trainingApi } from '@/api/training'
 
 export const useDashboardStore = defineStore('dashboard', {
@@ -146,17 +146,15 @@ export const useDashboardStore = defineStore('dashboard', {
     // 加载统计数据
     async loadStats() {
       try {
-        const [workflowStats, uploadStats, trainingStats] = await Promise.all([
-          workflowApi.getWorkflowStats(),
-          uploadApi.getUploadStats(), 
-          trainingApi.getTrainingStats()
+        const [workflowStats, uploadStats] = await Promise.all([
+          workflowApi.getDashboardData(),
+          getUploadStats()
         ])
         
         this.stats = {
           ...this.stats,
           ...workflowStats.data,
-          ...uploadStats.data,
-          ...trainingStats.data
+          ...uploadStats.data
         }
       } catch (error) {
         console.error('加载统计数据失败:', error)
@@ -166,7 +164,7 @@ export const useDashboardStore = defineStore('dashboard', {
     // 加载活跃工作流
     async loadActiveWorkflows() {
       try {
-        const response = await workflowApi.getWorkflows({
+        const response = await workflowApi.list({
           status: ['UPLOADING', 'PROCESSING', 'TRAINING'],
           limit: 10
         })
@@ -180,11 +178,18 @@ export const useDashboardStore = defineStore('dashboard', {
     // 加载最近活动
     async loadRecentActivities() {
       try {
-        const response = await workflowApi.getRecentActivities({
-          limit: 20
-        })
+        // 暂时使用工作流列表作为活动数据
+        const response = await workflowApi.list({ limit: 20 })
         
-        this.recentActivities = response.data || []
+        this.recentActivities = response.data.list?.map(workflow => ({
+          id: workflow.id,
+          type: 'workflow',
+          action: '状态更新',
+          target: workflow.name,
+          status: workflow.status,
+          timestamp: workflow.updatedAt,
+          description: `工作流 ${workflow.name} 状态更新为 ${workflow.status}`
+        })) || []
       } catch (error) {
         console.error('加载最近活动失败:', error)
       }
@@ -193,7 +198,7 @@ export const useDashboardStore = defineStore('dashboard', {
     // 加载上传队列
     async loadUploadQueue() {
       try {
-        const response = await uploadApi.getUploadStats()
+        const response = await getUploadStats()
         
         this.uploadQueue = {
           total: response.data.total || 0,

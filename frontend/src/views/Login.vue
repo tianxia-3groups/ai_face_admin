@@ -89,7 +89,8 @@ const handleLogin = async () => {
     if (valid) {
       const success = await authStore.login(loginForm)
       if (success) {
-        router.push('/')
+        // 登录成功后跳转到仪表板
+        await router.push('/dashboard')
       }
     }
   })

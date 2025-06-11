@@ -1,0 +1,35 @@
+{
+  "id": "8df9405a-1634-4171-8d26-1cee9ca90ad6",
+  "name": "自动化测试工作流",
+  "description": "用于系统连通性测试的工作流",
+  "expectedDuration": "30分钟",
+  "status": "TRAINING",
+  "createdAt": "2025-06-11T10:59:08.345Z",
+  "updatedAt": "2025-06-11T10:59:08.358Z",
+  "createdBy": "admin",
+  "type": "face_training",
+  "progress": {
+    "current": 50,
+    "total": 100,
+    "message": "测试并发控制"
+  },
+  "statusHistory": [
+    {
+      "status": "CREATED",
+      "timestamp": "2025-06-11T10:59:08.345Z",
+      "message": "工作流创建成功"
+    },
+    {
+      "status": "MATERIALS_READY",
+      "timestamp": "2025-06-11T10:59:08.355Z",
+      "message": "测试状态更新 - 素材准备完成",
+      "updatedBy": "admin"
+    },
+    {
+      "status": "TRAINING",
+      "timestamp": "2025-06-11T10:59:08.358Z",
+      "message": "测试并发控制",
+      "updatedBy": "admin"
+    }
+  ]
+}

@@ -12,11 +12,7 @@ const request = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   (config) => {
-    // 添加token到请求头
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+    // 不再添加token，依赖cookie中的session
     return config
   },
   (error) => {

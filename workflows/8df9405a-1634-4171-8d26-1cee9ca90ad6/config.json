@@ -1,0 +1,12 @@
+{
+  "workflowId": "8df9405a-1634-4171-8d26-1cee9ca90ad6",
+  "createdAt": "2025-06-11T10:59:08.348Z",
+  "directories": [
+    "materials/raw",
+    "materials/processed",
+    "materials/deleted",
+    "logs",
+    "output/model",
+    "output/reports"
+  ]
+}

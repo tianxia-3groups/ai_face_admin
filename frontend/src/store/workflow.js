@@ -27,9 +27,20 @@ export const useWorkflowStore = defineStore('workflow', () => {
   const fetchWorkflows = async () => {
     try {
       loading.value = true
+      console.log('开始获取工作流数据...')
       const response = await workflowApi.list()
-      workflows.value = response.workflows || []
+      console.log('API响应:', response)
+      
+      if (response && response.workflows) {
+        workflows.value = response.workflows
+        console.log('工作流数据已更新:', response.workflows)
+      } else {
+        console.warn('API响应结构异常:', response)
+        workflows.value = []
+      }
     } catch (error) {
+      console.error('获取工作流列表失败:', error)
+      workflows.value = []
       ElMessage.error(error.message || '获取工作流列表失败')
     } finally {
       loading.value = false

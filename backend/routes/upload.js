@@ -326,18 +326,12 @@ router.get('/config', async (req, res) => {
         retryDelay: 1000
       };
       
-      return res.json({
-        success: true,
-        data: defaultConfig
-      });
+      return res.json(defaultConfig);
     }
     
-    const config = await fs.readJson(configPath);
+    const uploadConfig = await fs.readJson(configPath);
     
-    res.json({
-      success: true,
-      data: config
-    });
+    res.json(uploadConfig);
     
   } catch (error) {
     logger.error('获取上传配置失败:', error);
