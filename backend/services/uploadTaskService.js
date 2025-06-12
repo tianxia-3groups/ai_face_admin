@@ -259,6 +259,26 @@ class UploadTaskService {
     return tasks.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
   }
 
+  // 获取所有任务
+  getAllTasks() {
+    const tasks = [];
+    
+    // 队列中的任务
+    tasks.push(...this.taskQueue);
+    
+    // 活跃任务
+    for (const task of this.activeTasks.values()) {
+      tasks.push(task);
+    }
+    
+    // 已完成任务
+    for (const task of this.completedTasks.values()) {
+      tasks.push(task);
+    }
+    
+    return tasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
+
   // 取消任务
   async cancelTask(taskId) {
     // 从队列中移除

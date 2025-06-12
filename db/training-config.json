@@ -1,33 +1,95 @@
 {
-  "learningRate": 0.001,
-  "epochs": 100,
-  "batchSize": 32,
-  "validationSplit": 0.2,
-  "patience": 10,
-  "minDelta": 0.001,
-  "optimizer": "adam",
-  "loss": "categorical_crossentropy",
-  "metrics": ["accuracy"],
-  "inputShape": [512, 512, 3],
-  "classCount": 1,
-  "dataAugmentation": {
-    "enabled": true,
-    "rotation": 20,
-    "widthShift": 0.2,
-    "heightShift": 0.2,
-    "shear": 0.2,
-    "zoom": 0.2,
-    "horizontalFlip": true,
-    "fillMode": "nearest"
-  },
-  "callbacks": {
-    "earlyStopping": true,
-    "reduceLROnPlateau": true,
-    "modelCheckpoint": true
+  "templates": {
+    "face_swap": {
+      "default": {
+        "epochs": 100,
+        "batchSize": 4,
+        "learningRate": 0.0001,
+        "resolution": 512,
+        "faceBlendRatio": 0.8,
+        "preservePose": true,
+        "preserveExpression": true,
+        "lightingAdaptation": true,
+        "dataAugmentation": {
+          "enabled": true,
+          "rotation": 20,
+          "widthShift": 0.2,
+          "heightShift": 0.2,
+          "shear": 0.2,
+          "zoom": 0.2,
+          "horizontalFlip": true,
+          "fillMode": "nearest"
+        }
+      },
+      "high_quality": {
+        "epochs": 200,
+        "batchSize": 2,
+        "learningRate": 0.00005,
+        "resolution": 1024,
+        "faceBlendRatio": 0.9,
+        "preservePose": true,
+        "preserveExpression": true,
+        "lightingAdaptation": true,
+        "dataAugmentation": {
+          "enabled": true,
+          "rotation": 10,
+          "widthShift": 0.1,
+          "heightShift": 0.1,
+          "shear": 0.1,
+          "zoom": 0.1,
+          "horizontalFlip": true,
+          "fillMode": "nearest"
+        }
+      }
+    },
+    "face_extract": {
+      "default": {
+        "epochs": 50,
+        "batchSize": 8,
+        "learningRate": 0.0002,
+        "resolution": 256,
+        "extractionAccuracy": 0.95,
+        "angleRange": 45,
+        "lightingRange": 0.7,
+        "expressionVariation": 0.8,
+        "dataAugmentation": {
+          "enabled": true,
+          "rotation": 30,
+          "widthShift": 0.3,
+          "heightShift": 0.3,
+          "shear": 0.2,
+          "zoom": 0.3,
+          "horizontalFlip": true,
+          "fillMode": "nearest"
+        }
+      },
+      "high_precision": {
+        "epochs": 100,
+        "batchSize": 4,
+        "learningRate": 0.0001,
+        "resolution": 512,
+        "extractionAccuracy": 0.98,
+        "angleRange": 60,
+        "lightingRange": 0.9,
+        "expressionVariation": 0.9,
+        "dataAugmentation": {
+          "enabled": true,
+          "rotation": 15,
+          "widthShift": 0.2,
+          "heightShift": 0.2,
+          "shear": 0.1,
+          "zoom": 0.2,
+          "horizontalFlip": true,
+          "fillMode": "nearest"
+        }
+      }
+    }
   },
   "hardware": {
     "gpu": true,
+    "gpuDevice": "auto",
     "memoryGrowth": true,
     "mixedPrecision": false
-  }
+  },
+  "updatedAt": "2025-06-11T22:46:51.260Z"
 }

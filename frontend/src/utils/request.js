@@ -76,4 +76,4 @@ request.interceptors.response.use(
   }
 )
 
-export { request } 
+export default request 

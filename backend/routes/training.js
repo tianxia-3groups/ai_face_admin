@@ -258,11 +258,296 @@ router.get('/:workflowId/logs', async (req, res) => {
 });
 
 /**
+ * 获取支持的训练类型
+ */
+router.get('/types', async (req, res) => {
+  try {
+    // 返回支持的训练类型及其描述
+    const trainTypes = [
+      {
+        id: 'face_swap',
+        name: '单对单训练',
+        description: '将脸源人物的脸部特征应用到模特身上，实现换脸效果',
+        requirements: {
+          source: '需要提供清晰的脸部照片/视频(至少20张)',
+          target: '需要提供模特照片/视频(至少10张)'
+        }
+      },
+      {
+        id: 'face_extract',
+        name: '单人脸提取训练',
+        description: '从单一人物素材中提取高质量的脸部特征模型',
+        requirements: {
+          source: '需要提供多角度、多表情的清晰脸部照片/视频(至少30张)',
+          target: '不需要模特素材'
+        }
+      }
+    ];
+    
+    res.json({
+      success: true,
+      types: trainTypes
+    });
+  } catch (error) {
+    logger.error('获取训练类型错误:', error);
+    res.status(500).json({ 
+      error: '服务器错误', 
+      message: '获取训练类型失败' 
+    });
+  }
+});
+
+/**
+ * 获取指定类型的配置模板
+ */
+router.get('/templates/:type', async (req, res) => {
+  try {
+    const { type } = req.params;
+    
+    // 验证类型
+    const validTypes = ['face_swap', 'face_extract'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ 
+        error: '参数错误', 
+        message: '无效的训练类型' 
+      });
+    }
+    
+    const configPath = path.join(process.cwd(), 'db/training-config.json');
+    const config = await fs.readJson(configPath);
+    
+    // 获取指定类型的模板
+    const templates = config.templates[type];
+    if (!templates) {
+      return res.status(404).json({ 
+        error: '模板不存在', 
+        message: `未找到类型为 ${type} 的训练模板` 
+      });
+    }
+    
+    res.json({
+      success: true,
+      type,
+      templates
+    });
+    
+  } catch (error) {
+    logger.error('获取训练模板错误:', error);
+    res.status(500).json({ 
+      error: '服务器错误', 
+      message: '获取训练模板失败' 
+    });
+  }
+});
+
+/**
+ * 验证素材是否符合训练类型要求
+ */
+router.post('/validate-materials', async (req, res) => {
+  try {
+    const { workflowId, type } = req.body;
+    
+    if (!workflowId || !type) {
+      return res.status(400).json({ 
+        error: '参数错误', 
+        message: '工作流ID和训练类型不能为空' 
+      });
+    }
+    
+    // 验证工作流存在
+    const workflowPath = path.join(process.cwd(), `db/workflows/${workflowId}.json`);
+    if (!await fs.pathExists(workflowPath)) {
+      return res.status(404).json({ 
+        error: '工作流不存在' 
+      });
+    }
+    
+    // 根据类型验证素材
+    const sourcePath = path.join(process.cwd(), `workflows/${workflowId}/materials/source`);
+    const sourceFiles = await fs.readdir(sourcePath);
+    const sourceImgCount = sourceFiles.filter(file => {
+      const ext = path.extname(file).toLowerCase();
+      return ['.jpg', '.jpeg', '.png', '.gif', '.bmp'].includes(ext);
+    }).length;
+    
+    const result = {
+      valid: true,
+      source: { valid: true, count: sourceImgCount, required: 0, message: '' }
+    };
+    
+    // 根据训练类型设置要求
+    if (type === 'face_swap') {
+      result.source.required = 20;
+      if (sourceImgCount < 20) {
+        result.source.valid = false;
+        result.source.message = '脸源图片数量不足，需要至少20张';
+        result.valid = false;
+      }
+      
+      // 检查模特素材
+      const targetPath = path.join(process.cwd(), `workflows/${workflowId}/materials/target`);
+      if (await fs.pathExists(targetPath)) {
+        const targetFiles = await fs.readdir(targetPath);
+        const targetImgCount = targetFiles.filter(file => {
+          const ext = path.extname(file).toLowerCase();
+          return ['.jpg', '.jpeg', '.png', '.gif', '.bmp'].includes(ext);
+        }).length;
+        
+        result.target = { valid: true, count: targetImgCount, required: 10, message: '' };
+        
+        if (targetImgCount < 10) {
+          result.target.valid = false;
+          result.target.message = '模特图片数量不足，需要至少10张';
+          result.valid = false;
+        }
+      } else {
+        result.target = { valid: false, count: 0, required: 10, message: '未找到模特素材目录' };
+        result.valid = false;
+      }
+    } else if (type === 'face_extract') {
+      result.source.required = 30;
+      if (sourceImgCount < 30) {
+        result.source.valid = false;
+        result.source.message = '脸源图片数量不足，需要至少30张';
+        result.valid = false;
+      }
+    }
+    
+    res.json({
+      success: true,
+      validation: result
+    });
+    
+  } catch (error) {
+    logger.error('验证素材错误:', error);
+    res.status(500).json({ 
+      error: '服务器错误', 
+      message: '验证素材失败' 
+    });
+  }
+});
+
+/**
+ * 获取训练类型的素材要求
+ */
+router.get('/requirements/:type', async (req, res) => {
+  try {
+    const { type } = req.params;
+    
+    // 验证类型
+    const validTypes = ['face_swap', 'face_extract'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ 
+        error: '参数错误', 
+        message: '无效的训练类型' 
+      });
+    }
+    
+    // 根据类型返回要求
+    let requirements;
+    if (type === 'face_swap') {
+      requirements = {
+        source: {
+          minCount: 20,
+          description: '需要提供清晰的脸部照片/视频，数量越多效果越好，至少20张',
+          formats: ['.jpg', '.png', '.jpeg', '.mp4', '.avi', '.mov'],
+          tips: [
+            '正面照片效果最佳，侧脸照片适量即可',
+            '表情丰富的照片有助于更好的效果',
+            '光线充足的照片效果会更好'
+          ]
+        },
+        target: {
+          minCount: 10,
+          description: '需要提供模特照片/视频，至少10张',
+          formats: ['.jpg', '.png', '.jpeg', '.mp4', '.avi', '.mov'],
+          tips: [
+            '姿势多样的照片有助于生成多样化的结果',
+            '光线、角度一致的照片会有更好的效果'
+          ]
+        }
+      };
+    } else if (type === 'face_extract') {
+      requirements = {
+        source: {
+          minCount: 30,
+          description: '需要提供多角度、多表情的清晰脸部照片/视频，至少30张',
+          formats: ['.jpg', '.png', '.jpeg', '.mp4', '.avi', '.mov'],
+          tips: [
+            '建议包含多种角度的照片（正面、侧面、仰角、俯角等）',
+            '包含多种表情的照片（微笑、严肃、惊讶等）',
+            '不同光线条件下的照片可提高适应性'
+          ]
+        }
+      };
+    }
+    
+    res.json({
+      success: true,
+      type,
+      requirements
+    });
+    
+  } catch (error) {
+    logger.error('获取训练要求错误:', error);
+    res.status(500).json({ 
+      error: '服务器错误', 
+      message: '获取训练要求失败' 
+    });
+  }
+});
+
+/**
  * 启动训练进程
  */
 async function startTrainingProcess(workflowId, username, io) {
-  const workflowDir = path.join(process.cwd(), `workflows/${workflowId}`);
-  const logPath = path.join(workflowDir, 'logs/training.log');
+  // 读取工作流配置和训练配置
+  const workflowPath = path.join(process.cwd(), `db/workflows/${workflowId}.json`);
+  const workflow = await fs.readJson(workflowPath);
+  
+  const trainingConfigPath = path.join(process.cwd(), `workflows/${workflowId}/training-config.json`);
+  const trainingConfig = await fs.readJson(trainingConfigPath);
+  
+  const trainType = workflow.type || 'face_swap';
+  
+  // 根据训练类型选择不同的训练脚本
+  let scriptPath;
+  if (trainType === 'face_swap') {
+    scriptPath = path.join(__dirname, '../scripts/train_face_swap.py');
+  } else if (trainType === 'face_extract') {
+    scriptPath = path.join(__dirname, '../scripts/train_face_extract.py');
+  } else {
+    scriptPath = path.join(__dirname, '../scripts/train.py');
+  }
+  
+  // 准备训练参数
+  const sourcePath = path.join(process.cwd(), `workflows/${workflowId}/materials/source`);
+  const outputPath = path.join(process.cwd(), `workflows/${workflowId}/output/model`);
+  const logPath = path.join(process.cwd(), `workflows/${workflowId}/logs/training.log`);
+  
+  // 构建训练命令行参数
+  const args = [
+    scriptPath,
+    '--workflow-id', workflowId,
+    '--source-dir', sourcePath,
+    '--output-dir', outputPath,
+    '--log-file', logPath,
+    '--epochs', trainingConfig.epochs,
+    '--batch-size', trainingConfig.batchSize,
+    '--learning-rate', trainingConfig.learningRate,
+    '--resolution', trainingConfig.resolution
+  ];
+  
+  // 根据训练类型添加额外参数
+  if (trainType === 'face_swap') {
+    const targetPath = path.join(process.cwd(), `workflows/${workflowId}/materials/target`);
+    args.push('--target-dir', targetPath);
+    args.push('--blend-ratio', trainingConfig.faceBlendRatio || 0.8);
+    args.push('--preserve-pose', trainingConfig.preservePose ? 'true' : 'false');
+  } else if (trainType === 'face_extract') {
+    args.push('--extraction-accuracy', trainingConfig.extractionAccuracy || 0.95);
+    args.push('--angle-range', trainingConfig.angleRange || 45);
+  }
   
   // 确保日志目录存在
   await fs.ensureDir(path.dirname(logPath));
@@ -270,18 +555,9 @@ async function startTrainingProcess(workflowId, username, io) {
   // 创建日志文件写入流
   const logStream = fs.createWriteStream(logPath, { flags: 'a' });
   
-  // 这里应该替换为实际的训练脚本路径
-  const trainingScript = process.env.TRAINING_SCRIPT || 'python train.py';
-  const args = [
-    '--data_dir', path.join(workflowDir, 'materials/processed'),
-    '--output_dir', path.join(workflowDir, 'output/model'),
-    '--config', path.join(workflowDir, 'training-config.json'),
-    '--workflow_id', workflowId
-  ];
-  
   // 启动训练进程
-  const trainingProcess = spawn('python', ['train.py', ...args], {
-    cwd: workflowDir,
+  const trainingProcess = spawn('python', args, {
+    cwd: process.cwd(),
     stdio: ['pipe', 'pipe', 'pipe']
   });
   
@@ -328,17 +604,9 @@ async function startTrainingProcess(workflowId, username, io) {
     trainingProcesses.delete(workflowId);
     
     // 更新工作流状态
-    const workflowPath = path.join(process.cwd(), `db/workflows/${workflowId}.json`);
-    const workflow = await fs.readJson(workflowPath);
-    
-    if (code === 0) {
-      workflow.status = 'TRAINING_COMPLETED';
-      workflow.progress.message = '训练完成';
-      workflow.progress.current = 100;
-    } else {
-      workflow.status = 'TRAINING_FAILED';
-      workflow.progress.message = `训练失败，退出码: ${code}`;
-    }
+    workflow.status = 'TRAINING_COMPLETED';
+    workflow.progress.message = '训练完成';
+    workflow.progress.current = 100;
     
     workflow.updatedAt = new Date().toISOString();
     workflow.statusHistory.push({
@@ -370,9 +638,6 @@ async function startTrainingProcess(workflowId, username, io) {
     trainingProcesses.delete(workflowId);
     
     // 更新工作流状态为失败
-    const workflowPath = path.join(process.cwd(), `db/workflows/${workflowId}.json`);
-    const workflow = await fs.readJson(workflowPath);
-    
     workflow.status = 'TRAINING_FAILED';
     workflow.progress.message = `训练进程错误: ${error.message}`;
     workflow.updatedAt = new Date().toISOString();
@@ -385,18 +650,14 @@ async function startTrainingProcess(workflowId, username, io) {
     });
   });
   
-  // 更新工作流状态为训练中
-  const workflowPath = path.join(process.cwd(), `db/workflows/${workflowId}.json`);
-  const workflow = await fs.readJson(workflowPath);
-  
+  // 更新工作流状态
   workflow.status = 'TRAINING';
-  workflow.progress.message = '训练进行中...';
-  workflow.progress.current = 10;
-  workflow.updatedAt = new Date().toISOString();
+  workflow.progress = { current: 0, total: 100, message: '训练已开始' };
   workflow.statusHistory.push({
     status: 'TRAINING',
     timestamp: new Date().toISOString(),
-    message: '训练已开始'
+    message: `训练已开始，类型: ${trainType}`,
+    updatedBy: username
   });
   
   await fs.writeJson(workflowPath, workflow, { spaces: 2 });

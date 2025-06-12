@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { uploadApi } from '@/api/upload'
 
 export const useUploadStore = defineStore('upload', () => {
   // 状态
@@ -26,6 +27,17 @@ export const useUploadStore = defineStore('upload', () => {
   const uploadingCount = computed(() => uploadingFiles.value.length)
   
   const hasUploading = computed(() => uploadingCount.value > 0)
+  
+  // 任务统计
+  const tasks = computed(() => uploadQueue.value)
+  
+  const taskStats = computed(() => ({
+    total: totalFiles.value,
+    uploading: uploadingFiles.value.length,
+    waiting: uploadQueue.value.filter(t => t.status === 'pending').length,
+    completed: completedFiles.value.length,
+    failed: failedFiles.value.length
+  }))
 
   // 动作
   const addUploadTask = (task) => {
@@ -138,6 +150,19 @@ export const useUploadStore = defineStore('upload', () => {
     return uploadQueue.value.filter(t => t.workflowId === workflowId)
   }
 
+  // 从API获取上传任务
+  const fetchTasks = async () => {
+    try {
+      const response = await uploadApi.getTasks()
+      if (response.success) {
+        uploadQueue.value = response.data || []
+        updateGlobalProgress()
+      }
+    } catch (error) {
+      console.error('获取上传任务失败:', error)
+    }
+  }
+
   return {
     // 状态
     uploadQueue,
@@ -151,6 +176,8 @@ export const useUploadStore = defineStore('upload', () => {
     totalFiles,
     uploadingCount,
     hasUploading,
+    tasks,
+    taskStats,
     
     // 动作
     addUploadTask,
@@ -163,6 +190,7 @@ export const useUploadStore = defineStore('upload', () => {
     clearCompleted,
     clearAll,
     getUploadTask,
-    getWorkflowUploads
+    getWorkflowUploads,
+    fetchTasks
   }
 }) 

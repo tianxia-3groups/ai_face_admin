@@ -7,21 +7,6 @@
       </div>
       
       <div class="header-right">
-        <!-- 创建新训练按钮 -->
-        <el-button type="primary" @click="createWorkflow">
-          <el-icon><Plus /></el-icon>
-          创建新训练
-        </el-button>
-        
-        <!-- 全局上传状态 -->
-        <div class="upload-status">
-          <el-badge :value="uploadStore.uploadingCount" :hidden="uploadStore.uploadingCount === 0">
-            <el-button text @click="toggleUploadPanel">
-              <el-icon><Upload /></el-icon>
-            </el-button>
-          </el-badge>
-        </div>
-        
         <!-- 用户菜单 -->
         <el-dropdown>
           <el-button text>

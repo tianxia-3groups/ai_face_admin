@@ -12,12 +12,15 @@ const uploadRoutes = require('./backend/routes/upload');
 const workflowRoutes = require('./backend/routes/workflow');
 const materialsRoutes = require('./backend/routes/materials');
 const trainingRoutes = require('./backend/routes/training');
+const settingsRoutes = require('./backend/routes/settings');
+const systemRoutes = require('./backend/routes/system');
 
 // 导入中间件
 const authMiddleware = require('./backend/middleware/auth');
 
 // 导入工具类
 const logger = require('./backend/utils/logger');
+const systemMonitor = require('./backend/services/systemMonitor');
 
 const app = express();
 const server = createServer(app);
@@ -138,6 +141,8 @@ app.use('/api/upload-tasks', authMiddleware, require('./backend/routes/uploadTas
 app.use('/api/workflow', authMiddleware, workflowRoutes);
 app.use('/api/materials', authMiddleware, materialsRoutes);
 app.use('/api/training', authMiddleware, trainingRoutes);
+app.use('/api/settings', authMiddleware, settingsRoutes);
+app.use('/api/system', authMiddleware, systemRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
@@ -180,8 +185,21 @@ io.on('connection', (socket) => {
     logger.info(`客户端 ${socket.id} 加入工作流房间: ${workflowId}`);
   });
   
+  // 系统监控事件处理
+  socket.on('join-system-monitor', () => {
+    logger.info(`客户端 ${socket.id} 加入系统监控`);
+    systemMonitor.addClient(socket);
+  });
+  
+  socket.on('leave-system-monitor', () => {
+    logger.info(`客户端 ${socket.id} 离开系统监控`);
+    systemMonitor.removeClient(socket);
+  });
+  
   socket.on('disconnect', () => {
     logger.info(`Socket客户端已断开: ${socket.id}`);
+    // 从系统监控中移除客户端
+    systemMonitor.removeClient(socket);
   });
 });
 

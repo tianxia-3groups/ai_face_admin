@@ -1,4 +1,4 @@
-import { request } from '@/utils/request'
+import request from '@/utils/request'
 
 /**
  * 上传任务管理API
@@ -177,6 +177,135 @@ export function cleanupTempFiles(taskId) {
   })
 }
 
+export const uploadApi = {
+  // 获取上传任务列表
+  getTasks: () => {
+    return request.get('/api/upload-tasks')
+  },
+
+  // 获取上传统计
+  getStats: () => {
+    return request.get('/api/upload-tasks/stats')
+  },
+
+  // 上传文件
+  uploadFile: (file, onProgress) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    return request.post('/api/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress) {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          )
+          onProgress(percentCompleted)
+        }
+      }
+    })
+  },
+
+  // 批量上传文件
+  uploadFiles: (files, onProgress) => {
+    const formData = new FormData()
+    files.forEach((file, index) => {
+      formData.append(`files`, file)
+    })
+    
+    return request.post('/api/upload/batch', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress) {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          )
+          onProgress(percentCompleted)
+        }
+      }
+    })
+  },
+
+  // 取消上传任务
+  cancelTask: (taskId) => {
+    return request.delete(`/api/upload-tasks/${taskId}`)
+  },
+
+  // 重试上传任务
+  retryTask: (taskId) => {
+    return request.post(`/api/upload-tasks/${taskId}/retry`)
+  },
+
+  // 清理已完成的任务
+  cleanupCompleted: () => {
+    return request.delete('/api/upload-tasks/completed')
+  },
+
+  // 上传脸源素材
+  uploadSourceMaterial: (workflowId, files, onProgress) => {
+    const formData = new FormData()
+    
+    if (Array.isArray(files)) {
+      files.forEach(file => {
+        formData.append('files', file)
+      })
+    } else {
+      formData.append('files', files)
+    }
+    
+    return request({
+      url: `/api/upload/${workflowId}/source`,
+      method: 'post',
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress) {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          )
+          onProgress(percentCompleted)
+        }
+      }
+    })
+  },
+  
+  // 上传模特素材
+  uploadTargetMaterial: (workflowId, files, onProgress) => {
+    const formData = new FormData()
+    
+    if (Array.isArray(files)) {
+      files.forEach(file => {
+        formData.append('files', file)
+      })
+    } else {
+      formData.append('files', files)
+    }
+    
+    return request({
+      url: `/api/upload/${workflowId}/target`,
+      method: 'post',
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress) {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          )
+          onProgress(percentCompleted)
+        }
+      }
+    })
+  }
+}
+
 export default {
   createUploadTask,
   getUploadTasks,
@@ -193,5 +322,6 @@ export default {
   uploadChunk,
   mergeChunks,
   checkFileExists,
-  cleanupTempFiles
+  cleanupTempFiles,
+  uploadApi
 } 

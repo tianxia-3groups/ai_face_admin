@@ -25,48 +25,36 @@
     <div class="stats-section">
       <el-row :gutter="24">
         <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card total-card">
-            <div class="stat-icon">
-              <el-icon><Folder /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ workflowStats.total }}</div>
-              <div class="stat-label">总流程</div>
-            </div>
-          </div>
+          <StatCard
+            type="total"
+            :icon="Folder"
+            :number="workflowStats.total"
+            label="总流程"
+          />
         </el-col>
         <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card running-card">
-            <div class="stat-icon">
-              <el-icon><VideoPlay /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ workflowStats.running }}</div>
-              <div class="stat-label">运行中</div>
-            </div>
-          </div>
+          <StatCard
+            type="running"
+            :icon="VideoPlay"
+            :number="workflowStats.running"
+            label="运行中"
+          />
         </el-col>
         <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card completed-card">
-            <div class="stat-icon">
-              <el-icon><Check /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ workflowStats.completed }}</div>
-              <div class="stat-label">已完成</div>
-            </div>
-          </div>
+          <StatCard
+            type="completed"
+            :icon="Check"
+            :number="workflowStats.completed"
+            label="已完成"
+          />
         </el-col>
         <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card failed-card">
-            <div class="stat-icon">
-              <el-icon><Warning /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ workflowStats.failed }}</div>
-              <div class="stat-label">失败</div>
-            </div>
-          </div>
+          <StatCard
+            type="failed"
+            :icon="Warning"
+            :number="workflowStats.failed"
+            label="失败"
+          />
         </el-col>
       </el-row>
     </div>
@@ -153,7 +141,7 @@
           class="workflow-table"
         >
           <el-table-column type="selection" width="55" />
-          
+
           <el-table-column label="流程名称" min-width="200">
             <template #default="{ row }">
               <div class="workflow-name-cell">
@@ -181,15 +169,19 @@
           <el-table-column label="进度" width="180">
             <template #default="{ row }">
               <div class="progress-cell">
-                <div class="progress-info">
-                  <span class="progress-text">{{ row.progress || 0 }}%</span>
-                </div>
-                <el-progress
-                  :percentage="row.progress || 0"
-                  :status="getProgressStatus(row.status)"
-                  :stroke-width="8"
-                  :show-text="false"
-                />
+                <el-popover placement="top" width="200" trigger="hover">
+                  <div class="progress-info">
+                    <span class="progress-text">当前进度{{ row.progress.current || 0 }}%</span>
+                  </div>
+                  <template #reference>
+                    <el-progress
+                        :percentage="row.progress.current || 0"
+                        :status="getProgressStatus(row.status)"
+                        :stroke-width="8"
+                        :show-text="false"
+                    />
+                  </template>
+                </el-popover>
               </div>
             </template>
           </el-table-column>
@@ -227,29 +219,29 @@
           <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
               <div class="action-buttons">
-                <el-button 
-                  size="small" 
-                  type="primary" 
+                <el-button
+                  size="small"
+                  type="primary"
                   @click="viewWorkflow(row.id)"
                   class="action-btn"
                 >
                   查看详情
                 </el-button>
-                
-                <el-button 
+
+                <el-button
                   v-if="row.status === 'FAILED'"
-                  size="small" 
-                  type="success" 
+                  size="small"
+                  type="success"
                   @click="retryWorkflow(row.id)"
                   class="action-btn"
                 >
                   重试
                 </el-button>
-                
-                <el-button 
+
+                <el-button
                   v-if="['CREATED', 'FAILED'].includes(row.status)"
-                  size="small" 
-                  type="danger" 
+                  size="small"
+                  type="danger"
                   @click="deleteWorkflow(row.id)"
                   class="action-btn"
                 >
@@ -282,11 +274,12 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
+import {
   Plus, Search, Refresh, ArrowDown, Delete, RefreshRight, VideoPlay,
   Folder, Check, Warning, List, Clock, User, Avatar
 } from '@element-plus/icons-vue'
 import { useWorkflowStore } from '@/store/workflow'
+import StatCard from '@/components/StatCard.vue'
 
 const router = useRouter()
 const workflowStore = useWorkflowStore()
@@ -326,7 +319,7 @@ const filteredWorkflows = computed(() => {
   // 按名称搜索
   if (searchKeyword.value.trim()) {
     const query = searchKeyword.value.toLowerCase()
-    result = result.filter(w => 
+    result = result.filter(w =>
       w.name.toLowerCase().includes(query) ||
       (w.description && w.description.toLowerCase().includes(query))
     )
@@ -366,7 +359,7 @@ const handleBatchAction = async (command) => {
         '批量删除确认',
         { type: 'warning' }
       )
-      
+
       // TODO: 调用批量删除API
       ElMessage.success('批量删除成功')
       await refreshList()
@@ -385,7 +378,7 @@ const retryWorkflow = async (id) => {
     await ElMessageBox.confirm('确定要重新开始这个训练流程吗？', '重试确认', {
       type: 'info'
     })
-    
+
     // TODO: 调用重试API
     ElMessage.success('重试已启动')
     await refreshList()
@@ -399,7 +392,7 @@ const deleteWorkflow = async (id) => {
     await ElMessageBox.confirm('确定要删除这个训练流程吗？删除后无法恢复。', '删除确认', {
       type: 'warning'
     })
-    
+
     const success = await workflowStore.deleteWorkflow(id)
     if (success) {
       await refreshList()
@@ -471,11 +464,11 @@ const formatTime = (timeStr) => {
 
 const getDuration = (workflow) => {
   if (!workflow.startedAt) return '-'
-  
+
   const start = new Date(workflow.startedAt)
   const end = workflow.completedAt ? new Date(workflow.completedAt) : new Date()
   const diff = Math.floor((end - start) / 1000 / 60) // 分钟
-  
+
   if (diff < 60) return `${diff}分钟`
   if (diff < 1440) return `${Math.floor(diff / 60)}小时${diff % 60}分钟`
   return `${Math.floor(diff / 1440)}天`
@@ -565,104 +558,6 @@ onMounted(() => {
 
 .stats-section {
   margin-bottom: 24px;
-}
-
-.stat-card {
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--card-color), var(--card-color-light));
-}
-
-.total-card {
-  --card-color: #8b5cf6;
-  --card-color-light: #a78bfa;
-}
-
-.running-card {
-  --card-color: #3b82f6;
-  --card-color-light: #60a5fa;
-}
-
-.completed-card {
-  --card-color: #10b981;
-  --card-color-light: #34d399;
-}
-
-.failed-card {
-  --card-color: #ef4444;
-  --card-color-light: #f87171;
-}
-
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-}
-
-.stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 16px;
-  font-size: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.total-card .stat-icon {
-  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
-  color: #8b5cf6;
-}
-
-.running-card .stat-icon {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  color: #3b82f6;
-}
-
-.completed-card .stat-icon {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  color: #10b981;
-}
-
-.failed-card .stat-icon {
-  background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
-  color: #ef4444;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-number {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1f2937;
-  line-height: 1;
-  margin-bottom: 6px;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: #6b7280;
-  font-weight: 500;
 }
 
 .toolbar-section {
@@ -1003,20 +898,7 @@ onMounted(() => {
     font-size: 20px;
   }
 
-  .stat-card {
-    padding: 16px;
-  }
 
-  .stat-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-    margin-right: 12px;
-  }
-
-  .stat-number {
-    font-size: 20px;
-  }
 
   .toolbar {
     padding: 16px;

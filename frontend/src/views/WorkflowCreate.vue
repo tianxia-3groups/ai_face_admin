@@ -47,11 +47,19 @@
               </el-form-item>
             </el-col>
             <el-col :xs="24" :md="12">
-              <el-form-item label="优先级" prop="priority">
-                <el-select v-model="formData.priority" placeholder="选择优先级">
-                  <el-option label="高优先级" value="high" />
-                  <el-option label="普通" value="medium" />
-                  <el-option label="低优先级" value="low" />
+              <el-form-item label="训练类型" prop="trainType">
+                <el-select v-model="formData.trainType" placeholder="选择训练类型" @change="handleTrainTypeChange">
+                  <el-option 
+                    v-for="type in trainTypes" 
+                    :key="type.id" 
+                    :label="type.name" 
+                    :value="type.id"
+                  >
+                    <div class="train-type-option">
+                      <span>{{ type.name }}</span>
+                      <el-tag size="small" type="info">{{ type.id }}</el-tag>
+                    </div>
+                  </el-option>
                 </el-select>
               </el-form-item>
             </el-col>
@@ -70,23 +78,21 @@
 
           <el-row :gutter="20">
             <el-col :xs="24" :md="12">
-              <el-form-item label="预期完成时间">
-                <el-select v-model="formData.estimatedTime" placeholder="选择预期时间">
-                  <el-option label="1-2小时" value="1-2h" />
-                  <el-option label="2-4小时" value="2-4h" />
-                  <el-option label="4-8小时" value="4-8h" />
-                  <el-option label="8-12小时" value="8-12h" />
-                  <el-option label="12小时以上" value="12h+" />
+              <el-form-item label="优先级" prop="priority">
+                <el-select v-model="formData.priority" placeholder="选择优先级">
+                  <el-option label="高优先级" value="high" />
+                  <el-option label="普通" value="medium" />
+                  <el-option label="低优先级" value="low" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :xs="24" :md="12">
-              <el-form-item label="训练类型" prop="trainingType">
-                <el-select v-model="formData.trainingType" placeholder="选择训练类型">
-                  <el-option label="人物肖像" value="portrait" />
-                  <el-option label="风景场景" value="landscape" />
-                  <el-option label="物体识别" value="object" />
-                  <el-option label="自定义" value="custom" />
+              <el-form-item label="优先级" prop="priority">
+                <el-select v-model="formData.priority" placeholder="选择优先级">
+                  <el-option label="低" value="low" />
+                  <el-option label="中等" value="medium" />
+                  <el-option label="高" value="high" />
+                  <el-option label="紧急" value="urgent" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -99,9 +105,34 @@
             <div class="section-header">
               <el-icon><Upload /></el-icon>
               <span>素材上传</span>
-              <el-tag type="info" size="small" class="ml-2">分别上传脸源和模特素材</el-tag>
+              <el-tag :type="formData.trainType === 'face_swap' ? 'info' : 'success'" size="small" class="ml-2">
+                {{ formData.trainType === 'face_swap' ? '分别上传脸源和模特素材' : '仅上传脸源素材' }}
+              </el-tag>
             </div>
           </template>
+
+          <!-- 训练类型说明 -->
+          <div v-if="selectedTrainType" class="train-type-info">
+            <div class="train-type-header">
+              <el-icon :color="formData.trainType === 'face_swap' ? '#409eff' : '#67c23a'">
+                <component :is="formData.trainType === 'face_swap' ? 'Switch' : 'Monitor'" />
+              </el-icon>
+              <h3>{{ selectedTrainType.name }}</h3>
+            </div>
+            <div class="train-type-description">
+              {{ selectedTrainType.description }}
+            </div>
+            <div class="train-type-requirements">
+              <div class="requirement-item">
+                <el-icon color="#409eff"><User /></el-icon>
+                <span>脸源素材: {{ selectedTrainType.requirements.source }}</span>
+              </div>
+              <div v-if="formData.trainType === 'face_swap'" class="requirement-item">
+                <el-icon color="#67c23a"><VideoCamera /></el-icon>
+                <span>模特素材: {{ selectedTrainType.requirements.target }}</span>
+              </div>
+            </div>
+          </div>
 
           <!-- 脸源上传区域 -->
           <div class="upload-section">
@@ -132,7 +163,7 @@
               <template #tip>
                 <div class="el-upload__tip">
                   上传要提取脸部特征的人物照片，用于给模特换脸<br/>
-                  支持 JPG/PNG/WebP 格式，建议5-20张多角度高清人脸照片
+                  支持 JPG/PNG/WebP 格式，建议{{ formData.trainType === 'face_swap' ? '5-20' : '20-50' }}张多角度高清人脸照片
                 </div>
               </template>
             </el-upload>
@@ -165,13 +196,13 @@
             </div>
           </div>
 
-          <!-- 模特上传区域 -->
-          <div class="upload-section">
+          <!-- 模特上传区域 - 只在face_swap类型显示 -->
+          <div v-if="formData.trainType === 'face_swap'" class="upload-section">
             <div class="upload-header">
               <div class="upload-title">
                 <el-icon color="#67c23a"><VideoCamera /></el-icon>
                 <span>模特素材</span>
-                <el-tag type="success" size="small">可选</el-tag>
+                <el-tag type="success" size="small">必需</el-tag>
               </div>
               <div class="upload-desc">
                 上传要开直播的模特本人的照片或视频，将使用脸源进行换脸
@@ -321,26 +352,93 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   ArrowLeft, Document, Upload, Setting, Delete, UploadFilled,
   User, VideoCamera, Picture, Film
 } from '@element-plus/icons-vue'
+import { workflowApi } from '@/api/workflow'
+import { createUploadTask, uploadChunk, checkFileExists } from '@/api/upload'
+import request from '@/utils/request'
+import { useWorkflowStore } from '@/store/workflow'
+import { uploadApi } from '@/api/upload'
+
+// 创建简单的分片上传函数
+const uploadFilesWithMaterialType = async (workflowId, files, materialType) => {
+  for (const file of files) {
+    const actualFile = file.raw || file
+    
+    // 简单起见，对于小文件直接上传，对于大文件使用分片
+    if (actualFile.size <= 10 * 1024 * 1024) { // 10MB以下直接上传
+      await uploadSingleFile(workflowId, actualFile, materialType)
+    } else {
+      await uploadFileInChunks(workflowId, actualFile, materialType)
+    }
+  }
+}
+
+// 单文件直接上传
+const uploadSingleFile = async (workflowId, file, materialType) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('materialType', materialType)
+  
+  return await request.post(`/api/upload/${workflowId}/direct`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
+// 分片上传
+const uploadFileInChunks = async (workflowId, file, materialType) => {
+  const chunkSize = 2 * 1024 * 1024 // 2MB
+  const totalChunks = Math.ceil(file.size / chunkSize)
+  const fileHash = await generateFileHash(file)
+  
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * chunkSize
+    const end = Math.min(start + chunkSize, file.size)
+    const chunk = file.slice(start, end)
+    
+    const formData = new FormData()
+    formData.append('chunk', chunk)
+    formData.append('chunkIndex', i)
+    formData.append('totalChunks', totalChunks)
+    formData.append('fileHash', fileHash)
+    formData.append('fileName', file.name)
+    formData.append('materialType', materialType)
+    
+    await request.post(`/api/upload/${workflowId}/chunks`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  }
+}
+
+// 生成文件哈希（简化版本）
+const generateFileHash = async (file) => {
+  const arrayBuffer = await file.arrayBuffer()
+  const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
 
 const router = useRouter()
+const workflowStore = useWorkflowStore()
 const formRef = ref()
 const faceSourceFiles = ref([])
 const modelFiles = ref([])
+const loading = ref(false)
+const trainTypes = ref([])
+const selectedTrainType = ref(null)
 
 // 表单数据
 const formData = reactive({
   name: '',
   description: '',
   priority: 'medium',
-  estimatedTime: '',
-  trainingType: '',
+  trainType: 'face_swap', // 默认为单对单训练
+  estimatedTime: '4-8h',
   configTemplate: 'quick',
   targetImageCount: 200
 })
@@ -351,7 +449,10 @@ const rules = {
     { required: true, message: '请输入流程名称', trigger: 'blur' },
     { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
   ],
-  trainingType: [
+  priority: [
+    { required: true, message: '请选择优先级', trigger: 'change' }
+  ],
+  trainType: [
     { required: true, message: '请选择训练类型', trigger: 'change' }
   ],
   configTemplate: [
@@ -391,6 +492,20 @@ const formatFileSize = (bytes) => {
 // 脸源文件处理
 const handleFaceSourceChange = (file, files) => {
   console.log('脸源文件变化:', file, files)
+  faceSourceFiles.value = files
+  
+  // 检查文件类型和大小
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+  const maxSize = 50 * 1024 * 1024 // 50MB
+  
+  const invalidFiles = files.filter(f => 
+    !validTypes.includes(f.raw?.type || f.type) || 
+    (f.raw?.size || f.size) > maxSize
+  )
+  
+  if (invalidFiles.length > 0) {
+    ElMessage.warning(`有 ${invalidFiles.length} 个文件格式不支持或大小超过50MB`)
+  }
 }
 
 const removeFaceSourceFile = (index) => {
@@ -400,6 +515,23 @@ const removeFaceSourceFile = (index) => {
 // 模特文件处理
 const handleModelChange = (file, files) => {
   console.log('模特文件变化:', file, files)
+  modelFiles.value = files
+  
+  // 检查文件类型和大小
+  const validTypes = [
+    'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+    'video/mp4', 'video/avi', 'video/mov', 'video/quicktime'
+  ]
+  const maxSize = 500 * 1024 * 1024 // 500MB
+  
+  const invalidFiles = files.filter(f => 
+    !validTypes.includes(f.raw?.type || f.type) || 
+    (f.raw?.size || f.size) > maxSize
+  )
+  
+  if (invalidFiles.length > 0) {
+    ElMessage.warning(`有 ${invalidFiles.length} 个文件格式不支持或大小超过500MB`)
+  }
 }
 
 const removeModelFile = (index) => {
@@ -443,36 +575,101 @@ const saveAsDraft = async () => {
   }
 }
 
+// 创建工作流
 const createWorkflow = async () => {
   try {
-    creating.value = true
+    // 表单验证
+    await formRef.value.validate()
     
-    const valid = await formRef.value.validate()
-    if (!valid) return
-    
+    // 文件验证
     if (faceSourceFiles.value.length === 0) {
-      ElMessage.warning('请至少上传一个脸源文件')
+      ElMessage.error('请上传脸源素材')
       return
     }
     
-    // 确认创建
-    await ElMessageBox.confirm(
-      '确定要创建这个训练流程吗？创建后将自动开始处理。',
-      '创建确认',
-      { type: 'info' }
+    // 如果是单对单训练，还需要检查模特素材
+    if (formData.trainType === 'face_swap' && modelFiles.value.length === 0) {
+      ElMessage.error('单对单训练模式需要上传模特素材')
+      return
+    }
+    
+    // 开始创建工作流
+    loading.value = true
+    
+    // 1. 创建工作流
+    const workflow = await workflowStore.createWorkflow({
+      name: formData.name,
+      description: formData.description,
+      priority: formData.priority,
+      trainType: formData.trainType,
+      expectedDuration: formData.estimatedTime,
+      configTemplate: formData.configTemplate,
+      targetImageCount: formData.targetImageCount
+    })
+    
+    if (!workflow) {
+      throw new Error('创建工作流失败')
+    }
+    
+    // 2. 上传脸源素材
+    await uploadApi.uploadSourceMaterial(
+      workflow.id, 
+      faceSourceFiles.value.map(f => f.raw),
+      (progress) => {
+        console.log(`脸源上传进度: ${progress}%`)
+      }
     )
     
-    ElMessage.success('训练流程创建成功！')
-    router.push('/workflows')
-    
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('创建失败: ' + error.message)
+    // 3. 如果是换脸类型，上传模特素材
+    if (formData.trainType === 'face_swap' && modelFiles.value.length > 0) {
+      await uploadApi.uploadTargetMaterial(
+        workflow.id, 
+        modelFiles.value.map(f => f.raw),
+        (progress) => {
+          console.log(`模特上传进度: ${progress}%`)
+        }
+      )
     }
+    
+    ElMessage.success('工作流创建成功，正在上传素材...')
+    
+    // 跳转到详情页
+    router.push(`/workflow/${workflow.id}`)
+  } catch (error) {
+    console.error('创建工作流错误:', error)
+    ElMessage.error(error.message || '创建工作流失败')
   } finally {
-    creating.value = false
+    loading.value = false
   }
 }
+
+// 处理训练类型变更
+const handleTrainTypeChange = (type) => {
+  selectedTrainType.value = trainTypes.value.find(t => t.id === type)
+  // 如果切换到单人脸提取，清空模特文件
+  if (type === 'face_extract') {
+    modelFiles.value = []
+  }
+}
+
+// 加载训练类型数据
+const loadTrainTypes = async () => {
+  try {
+    trainTypes.value = await workflowStore.fetchTrainTypes() || []
+    if (trainTypes.value.length > 0) {
+      formData.trainType = trainTypes.value[0].id
+      selectedTrainType.value = trainTypes.value[0]
+    }
+  } catch (error) {
+    console.error('加载训练类型失败:', error)
+    ElMessage.error('加载训练类型失败')
+  }
+}
+
+// 页面加载时获取训练类型数据
+onMounted(() => {
+  loadTrainTypes()
+})
 </script>
 
 <style scoped>
@@ -697,5 +894,58 @@ const createWorkflow = async () => {
   .form-actions .el-button {
     width: 100%;
   }
+}
+
+.train-type-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.train-type-info {
+  background-color: var(--el-color-info-light-9);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.train-type-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.train-type-header h3 {
+  margin: 0;
+  margin-left: 8px;
+  font-size: 16px;
+}
+
+.train-type-description {
+  color: var(--el-text-color-secondary);
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.train-type-requirements {
+  background-color: var(--el-color-white);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.requirement-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.requirement-item:last-child {
+  margin-bottom: 0;
+}
+
+.requirement-item span {
+  margin-left: 8px;
+  font-size: 14px;
 }
 </style> 

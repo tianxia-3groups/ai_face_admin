@@ -7,6 +7,7 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
+    DashboardSystemStatus: typeof import('./src/components/DashboardSystemStatus.vue')['default']
     ElAside: typeof import('element-plus/es')['ElAside']
     ElBadge: typeof import('element-plus/es')['ElBadge']
     ElButton: typeof import('element-plus/es')['ElButton']
@@ -29,6 +30,7 @@ declare module 'vue' {
     ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
     ElOption: typeof import('element-plus/es')['ElOption']
     ElPagination: typeof import('element-plus/es')['ElPagination']
+    ElPopover: typeof import('element-plus/es')['ElPopover']
     ElProgress: typeof import('element-plus/es')['ElProgress']
     ElRow: typeof import('element-plus/es')['ElRow']
     ElSelect: typeof import('element-plus/es')['ElSelect']
@@ -47,6 +49,8 @@ declare module 'vue' {
     MainLayout: typeof import('./src/components/Layout/MainLayout.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    StatCard: typeof import('./src/components/StatCard.vue')['default']
+    SystemStatus: typeof import('./src/components/SystemStatus.vue')['default']
     UploadManager: typeof import('./src/components/Upload/UploadManager.vue')['default']
     UploadProgressPanel: typeof import('./src/components/Upload/UploadProgressPanel.vue')['default']
     WorkflowStatus: typeof import('./src/components/WorkflowStatus.vue')['default']

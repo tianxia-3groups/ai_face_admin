@@ -147,6 +147,38 @@ router.post('/cancel/:taskId', async (req, res) => {
   }
 });
 
+// 获取所有任务列表
+router.get('/', async (req, res) => {
+  try {
+    const tasks = uploadTaskService.getAllTasks();
+    
+    // 返回简化的任务信息
+    const simplifiedTasks = tasks.map(task => ({
+      id: task.id,
+      workflowId: task.workflowId,
+      status: task.status,
+      progress: task.progress,
+      fileCount: task.files.length,
+      createdAt: task.createdAt,
+      startedAt: task.startedAt,
+      completedAt: task.completedAt,
+      error: task.error
+    }));
+
+    res.json({
+      success: true,
+      data: simplifiedTasks
+    });
+
+  } catch (error) {
+    logger.error('获取任务列表失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取任务列表失败: ' + error.message
+    });
+  }
+});
+
 // 获取所有任务列表（分页）
 router.get('/list', async (req, res) => {
   try {

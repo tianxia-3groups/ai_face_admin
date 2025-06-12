@@ -174,7 +174,7 @@ router.get('/:id', async (req, res) => {
     
     res.json({
       success: true,
-      workflow
+      data: workflow
     });
     
   } catch (error) {
@@ -191,12 +191,21 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { name, description, expectedDuration } = req.body;
+    const { name, description, expectedDuration, trainType } = req.body;
     
     if (!name) {
       return res.status(400).json({ 
         error: '参数错误', 
         message: '工作流名称不能为空' 
+      });
+    }
+    
+    // 验证训练类型
+    const validTrainTypes = ['face_swap', 'face_extract'];
+    if (!trainType || !validTrainTypes.includes(trainType)) {
+      return res.status(400).json({
+        error: '参数错误',
+        message: '训练类型无效，必须是face_swap或face_extract'
       });
     }
     
@@ -210,7 +219,7 @@ router.post('/', async (req, res) => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       createdBy: req.user.username,
-      type: 'face_training',
+      type: trainType, // 保存训练类型
       progress: {
         current: 0,
         total: 100,
@@ -220,7 +229,19 @@ router.post('/', async (req, res) => {
         status: WORKFLOW_STATUS.CREATED,
         timestamp: new Date().toISOString(),
         message: '工作流创建成功'
-      }]
+      }],
+      materials: {
+        source: {
+          totalFiles: 0,
+          processedFiles: 0,
+          selectedFiles: []
+        },
+        target: trainType === 'face_swap' ? {
+          totalFiles: 0,
+          processedFiles: 0,
+          selectedFiles: []
+        } : null
+      }
     };
     
     // 保存工作流配置
@@ -228,12 +249,12 @@ router.post('/', async (req, res) => {
     await fs.writeJson(workflowPath, workflow, { spaces: 2 });
     
     // 创建工作流目录结构
-    await createWorkflowDirectories(workflowId);
+    await createWorkflowDirectories(workflowId, trainType);
     
     // 复制训练配置模板
-    await copyTrainingConfig(workflowId);
+    await copyTrainingConfig(workflowId, trainType);
     
-    logger.info(`工作流创建成功: ${workflowId} - ${name} by ${req.user.username}`);
+    logger.info(`工作流创建成功: ${workflowId} - ${name} - 类型: ${trainType} by ${req.user.username}`);
     
     res.json({
       success: true,
@@ -388,11 +409,12 @@ router.delete('/:id', async (req, res) => {
 /**
  * 创建工作流目录结构
  */
-async function createWorkflowDirectories(workflowId) {
+async function createWorkflowDirectories(workflowId, trainType) {
   const baseDir = path.join(process.cwd(), `workflows/${workflowId}`);
   
   const dirs = [
     'materials/raw',
+    'materials/source', // 脸源素材目录
     'materials/processed', 
     'materials/deleted',
     'logs',
@@ -400,30 +422,52 @@ async function createWorkflowDirectories(workflowId) {
     'output/reports'
   ];
   
+  // 如果是face_swap类型，添加target目录
+  if (trainType === 'face_swap') {
+    dirs.push('materials/target'); // 模特素材目录
+  }
+  
   for (const dir of dirs) {
     await fs.ensureDir(path.join(baseDir, dir));
   }
   
-  // 创建基本配置文件
+  // 保存目录结构信息
   const configPath = path.join(baseDir, 'config.json');
-  const config = {
+  await fs.writeJson(configPath, {
     workflowId,
+    trainType,
     createdAt: new Date().toISOString(),
     directories: dirs
-  };
+  }, { spaces: 2 });
   
-  await fs.writeJson(configPath, config, { spaces: 2 });
+  logger.info(`工作流目录创建成功: ${workflowId}`);
 }
 
 /**
  * 复制训练配置模板
  */
-async function copyTrainingConfig(workflowId) {
-  const templatePath = path.join(process.cwd(), 'db/training-config.json');
+async function copyTrainingConfig(workflowId, trainType) {
+  const sourcePath = path.join(process.cwd(), 'db/training-config.json');
   const targetPath = path.join(process.cwd(), `workflows/${workflowId}/training-config.json`);
   
-  const template = await fs.readJson(templatePath);
-  await fs.writeJson(targetPath, template, { spaces: 2 });
+  const trainingConfig = await fs.readJson(sourcePath);
+  
+  // 选择对应训练类型的默认配置
+  const templateConfig = trainType && trainingConfig.templates[trainType] ? 
+    trainingConfig.templates[trainType].default : 
+    trainingConfig.templates.face_swap.default;
+  
+  // 添加硬件配置
+  const configToSave = {
+    ...templateConfig,
+    hardware: trainingConfig.hardware,
+    trainType: trainType || 'face_swap',
+    updatedAt: new Date().toISOString()
+  };
+  
+  await fs.writeJson(targetPath, configToSave, { spaces: 2 });
+  
+  logger.info(`训练配置已复制到工作流: ${workflowId}`);
 }
 
 /**

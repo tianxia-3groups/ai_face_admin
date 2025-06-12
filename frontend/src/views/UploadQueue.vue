@@ -25,56 +25,6 @@
       </div>
     </div>
 
-    <!-- 统计卡片 -->
-    <div class="stats-section">
-      <el-row :gutter="24">
-        <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card total-card">
-            <div class="stat-icon">
-              <el-icon><Folder /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ uploadStore.totalFiles }}</div>
-              <div class="stat-label">总任务数</div>
-            </div>
-          </div>
-        </el-col>
-        <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card uploading-card">
-            <div class="stat-icon">
-              <el-icon><Loading /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ uploadStore.uploadingCount }}</div>
-              <div class="stat-label">进行中</div>
-            </div>
-          </div>
-        </el-col>
-        <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card completed-card">
-            <div class="stat-icon">
-              <el-icon><Check /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ uploadStore.completedFiles.length }}</div>
-              <div class="stat-label">已完成</div>
-            </div>
-          </div>
-        </el-col>
-        <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card failed-card">
-            <div class="stat-icon">
-              <el-icon><Warning /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ uploadStore.failedFiles.length }}</div>
-              <div class="stat-label">失败</div>
-            </div>
-          </div>
-        </el-col>
-      </el-row>
-    </div>
-
     <!-- 任务列表 -->
     <div class="task-list-section">
       <el-card class="task-list-card" shadow="never">

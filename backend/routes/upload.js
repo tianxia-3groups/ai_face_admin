@@ -46,12 +46,53 @@ const upload = multer({
 });
 
 /**
+ * 直接上传小文件
+ */
+router.post('/:workflowId/direct', upload.single('file'), async (req, res) => {
+  try {
+    const { workflowId } = req.params;
+    const { materialType = 'faceSource' } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ 
+        error: '上传错误', 
+        message: '没有收到文件' 
+      });
+    }
+    
+    // 确保目标目录存在
+    const targetDir = path.join(process.cwd(), `workflows/${workflowId}/materials/raw/${materialType}`);
+    await fs.ensureDir(targetDir);
+    
+    // 移动文件到目标目录
+    const targetPath = path.join(targetDir, req.file.originalname);
+    await fs.move(req.file.path, targetPath);
+    
+    logger.info(`文件直接上传完成: ${workflowId}/${materialType}/${req.file.originalname}`);
+    
+    res.json({
+      success: true,
+      message: '文件上传成功',
+      filePath: `workflows/${workflowId}/materials/raw/${materialType}/${req.file.originalname}`,
+      size: req.file.size
+    });
+    
+  } catch (error) {
+    logger.error('直接上传错误:', error);
+    res.status(500).json({ 
+      error: '服务器错误', 
+      message: '文件上传失败: ' + error.message
+    });
+  }
+});
+
+/**
  * 分片上传 - 上传单个分片
  */
 router.post('/:workflowId/chunks', upload.single('chunk'), async (req, res) => {
   try {
     const { workflowId } = req.params;
-    const { chunkIndex, totalChunks, fileHash, fileName } = req.body;
+    const { chunkIndex, totalChunks, fileHash, fileName, materialType = 'faceSource' } = req.body;
     
     if (!req.file) {
       return res.status(400).json({ 
@@ -79,7 +120,7 @@ router.post('/:workflowId/chunks', upload.single('chunk'), async (req, res) => {
     
     if (isComplete) {
       // 合并分片
-      const mergeResult = await mergeChunks(workflowId, fileHash, fileName, totalChunks_num);
+      const mergeResult = await mergeChunks(workflowId, fileHash, fileName, totalChunks_num, materialType);
       
       res.json({
         success: true,
@@ -108,9 +149,9 @@ router.post('/:workflowId/chunks', upload.single('chunk'), async (req, res) => {
 /**
  * 合并文件分片
  */
-async function mergeChunks(workflowId, fileHash, fileName, totalChunks) {
+async function mergeChunks(workflowId, fileHash, fileName, totalChunks, materialType = 'faceSource') {
   const chunksDir = path.join(process.cwd(), `uploads/chunks/${workflowId}/${fileHash}`);
-  const targetDir = path.join(process.cwd(), `workflows/${workflowId}/materials/raw`);
+  const targetDir = path.join(process.cwd(), `workflows/${workflowId}/materials/raw/${materialType}`);
   await fs.ensureDir(targetDir);
   
   const targetPath = path.join(targetDir, fileName);
@@ -145,7 +186,7 @@ async function mergeChunks(workflowId, fileHash, fileName, totalChunks) {
     logger.info(`文件合并完成: ${fileName} (${stats.size} bytes)`);
     
     return {
-      filePath: `workflows/${workflowId}/materials/raw/${fileName}`,
+      filePath: `workflows/${workflowId}/materials/raw/${materialType}/${fileName}`,
       size: stats.size
     };
     
@@ -161,7 +202,7 @@ async function mergeChunks(workflowId, fileHash, fileName, totalChunks) {
 router.post('/:workflowId/check-exists', async (req, res) => {
   try {
     const { workflowId } = req.params;
-    const { fileHash, fileName } = req.body;
+    const { fileHash, fileName, materialType = 'faceSource' } = req.body;
     
     if (!fileHash || !fileName) {
       return res.status(400).json({
@@ -170,7 +211,7 @@ router.post('/:workflowId/check-exists', async (req, res) => {
       });
     }
     
-    const filePath = path.join(process.cwd(), `workflows/${workflowId}/materials/raw/${fileName}`);
+    const filePath = path.join(process.cwd(), `workflows/${workflowId}/materials/raw/${materialType}/${fileName}`);
     const exists = await fs.pathExists(filePath);
     
     let uploadedChunks = 0;
@@ -369,6 +410,225 @@ router.get('/stats', async (req, res) => {
     res.status(500).json({
       error: '服务器错误',
       message: '获取上传统计失败: ' + error.message
+    });
+  }
+});
+
+/**
+ * 上传脸源素材
+ */
+router.post('/:workflowId/source', upload.array('files'), async (req, res) => {
+  try {
+    const { workflowId } = req.params;
+    
+    // 验证工作流存在
+    const workflowPath = path.join(process.cwd(), `db/workflows/${workflowId}.json`);
+    if (!await fs.pathExists(workflowPath)) {
+      return res.status(404).json({
+        error: '工作流不存在',
+        message: `找不到ID为 ${workflowId} 的工作流`
+      });
+    }
+    
+    // 获取工作流配置
+    const workflow = await fs.readJson(workflowPath);
+    
+    // 确保目录存在
+    const sourceDir = path.join(process.cwd(), `workflows/${workflowId}/materials/source`);
+    await fs.ensureDir(sourceDir);
+    
+    const rawDir = path.join(process.cwd(), `workflows/${workflowId}/materials/raw`);
+    await fs.ensureDir(rawDir);
+    
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        error: '没有文件',
+        message: '没有收到上传的文件'
+      });
+    }
+    
+    // 处理上传的文件
+    const result = {
+      success: true,
+      files: []
+    };
+    
+    for (const file of req.files) {
+      // 保存到源目录
+      const destPath = path.join(sourceDir, file.originalname);
+      await fs.move(file.path, destPath, { overwrite: true });
+      
+      // 备份到raw目录
+      const rawPath = path.join(rawDir, `source_${file.originalname}`);
+      await fs.copy(destPath, rawPath);
+      
+      result.files.push({
+        originalName: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype,
+        destination: destPath
+      });
+      
+      logger.info(`文件上传成功(脸源): ${file.originalname} (${workflowId})`);
+    }
+    
+    // 更新工作流素材数量
+    if (!workflow.materials) {
+      workflow.materials = {
+        source: {
+          totalFiles: 0,
+          processedFiles: 0,
+          selectedFiles: []
+        }
+      };
+    }
+    
+    if (!workflow.materials.source) {
+      workflow.materials.source = {
+        totalFiles: 0,
+        processedFiles: 0,
+        selectedFiles: []
+      };
+    }
+    
+    workflow.materials.source.totalFiles += req.files.length;
+    workflow.updatedAt = new Date().toISOString();
+    
+    // 如果当前是创建状态，则更新为上传中
+    if (workflow.status === 'CREATED') {
+      workflow.status = 'UPLOADING';
+      workflow.statusHistory.push({
+        status: 'UPLOADING',
+        timestamp: new Date().toISOString(),
+        message: '素材上传中'
+      });
+    }
+    
+    await fs.writeJson(workflowPath, workflow, { spaces: 2 });
+    
+    res.json(result);
+    
+  } catch (error) {
+    logger.error('上传脸源素材错误:', error);
+    res.status(500).json({
+      error: '服务器错误',
+      message: '上传脸源素材失败'
+    });
+  }
+});
+
+/**
+ * 上传模特素材
+ */
+router.post('/:workflowId/target', upload.array('files'), async (req, res) => {
+  try {
+    const { workflowId } = req.params;
+    
+    // 验证工作流存在
+    const workflowPath = path.join(process.cwd(), `db/workflows/${workflowId}.json`);
+    if (!await fs.pathExists(workflowPath)) {
+      return res.status(404).json({
+        error: '工作流不存在',
+        message: `找不到ID为 ${workflowId} 的工作流`
+      });
+    }
+    
+    // 获取工作流配置
+    const workflow = await fs.readJson(workflowPath);
+    
+    // 验证训练类型
+    if (workflow.type !== 'face_swap') {
+      return res.status(400).json({
+        error: '训练类型错误',
+        message: '只有单对单训练类型需要上传模特素材'
+      });
+    }
+    
+    // 确保目录存在
+    const targetDir = path.join(process.cwd(), `workflows/${workflowId}/materials/target`);
+    await fs.ensureDir(targetDir);
+    
+    const rawDir = path.join(process.cwd(), `workflows/${workflowId}/materials/raw`);
+    await fs.ensureDir(rawDir);
+    
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        error: '没有文件',
+        message: '没有收到上传的文件'
+      });
+    }
+    
+    // 处理上传的文件
+    const result = {
+      success: true,
+      files: []
+    };
+    
+    for (const file of req.files) {
+      // 保存到目标目录
+      const destPath = path.join(targetDir, file.originalname);
+      await fs.move(file.path, destPath, { overwrite: true });
+      
+      // 备份到raw目录
+      const rawPath = path.join(rawDir, `target_${file.originalname}`);
+      await fs.copy(destPath, rawPath);
+      
+      result.files.push({
+        originalName: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype,
+        destination: destPath
+      });
+      
+      logger.info(`文件上传成功(模特): ${file.originalname} (${workflowId})`);
+    }
+    
+    // 更新工作流素材数量
+    if (!workflow.materials) {
+      workflow.materials = {
+        source: {
+          totalFiles: 0,
+          processedFiles: 0,
+          selectedFiles: []
+        },
+        target: {
+          totalFiles: 0,
+          processedFiles: 0,
+          selectedFiles: []
+        }
+      };
+    }
+    
+    if (!workflow.materials.target) {
+      workflow.materials.target = {
+        totalFiles: 0,
+        processedFiles: 0,
+        selectedFiles: []
+      };
+    }
+    
+    workflow.materials.target.totalFiles += req.files.length;
+    workflow.updatedAt = new Date().toISOString();
+    
+    // 如果当前是创建状态，则更新为上传中
+    if (workflow.status === 'CREATED') {
+      workflow.status = 'UPLOADING';
+      workflow.statusHistory.push({
+        status: 'UPLOADING',
+        timestamp: new Date().toISOString(),
+        message: '素材上传中'
+      });
+    }
+    
+    await fs.writeJson(workflowPath, workflow, { spaces: 2 });
+    
+    res.json(result);
+    
+  } catch (error) {
+    logger.error('上传模特素材错误:', error);
+    res.status(500).json({
+      error: '服务器错误',
+      message: '上传模特素材失败'
     });
   }
 });

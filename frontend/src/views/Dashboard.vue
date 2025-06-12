@@ -4,7 +4,9 @@
     <div class="welcome-section">
       <div class="welcome-content">
         <h1>
-          <el-icon class="title-icon"><Star /></el-icon>
+          <el-icon class="title-icon">
+            <Star/>
+          </el-icon>
           AI训练管理系统
         </h1>
         <p class="welcome-text">
@@ -12,20 +14,20 @@
           <strong class="highlight">{{ stats.waiting }}</strong> 个流程等待中。
         </p>
         <div class="quick-actions">
-          <el-button 
-            type="primary" 
-            size="large"
-            icon="Plus"
-            class="action-btn primary-btn"
-            @click="createWorkflow"
+          <el-button
+              type="primary"
+              size="large"
+              icon="Plus"
+              class="action-btn primary-btn"
+              @click="createWorkflow"
           >
             创建新训练
           </el-button>
-          <el-button 
-            size="large"
-            icon="FolderOpened"
-            class="action-btn secondary-btn"
-            @click="goToWorkflows"
+          <el-button
+              size="large"
+              icon="FolderOpened"
+              class="action-btn secondary-btn"
+              @click="goToWorkflows"
           >
             流程中心
           </el-button>
@@ -33,16 +35,18 @@
       </div>
       <div class="welcome-visual">
         <div class="status-ring">
-          <el-progress 
-            type="circle" 
-            :percentage="systemProgress"
-            :width="100"
-            :stroke-width="8"
-            color="#ffc107"
+          <el-progress
+              type="circle"
+              :percentage="systemProgress"
+              :width="100"
+              :stroke-width="8"
+              color="#ffc107"
           >
             <template #default="{ percentage }">
-              <span class="progress-text">{{ percentage }}%</span>
-              <span class="progress-label">系统繁忙度</span>
+              <div>
+                <div class="progress-text">{{ percentage }}%</div>
+                <div class="progress-label">系统繁忙度</div>
+              </div>
             </template>
           </el-progress>
         </div>
@@ -58,60 +62,36 @@
     <div class="stats-section">
       <el-row :gutter="24">
         <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card running-card">
-            <div class="stat-icon running">
-              <el-icon><VideoPlay /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ stats.running }}</div>
-              <div class="stat-label">运行中</div>
-            </div>
-            <div class="stat-trend">
-              <el-icon class="trend-icon"><TrendCharts /></el-icon>
-            </div>
-          </div>
+          <StatCard
+              type="running"
+              :icon="VideoPlay"
+              :number="stats.running"
+              label="运行中"
+          />
         </el-col>
         <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card waiting-card">
-            <div class="stat-icon waiting">
-              <el-icon><Clock /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ stats.waiting }}</div>
-              <div class="stat-label">等待中</div>
-            </div>
-            <div class="stat-trend">
-              <el-icon class="trend-icon"><Minus /></el-icon>
-            </div>
-          </div>
+          <StatCard
+              type="waiting"
+              :icon="Clock"
+              :number="stats.waiting"
+              label="等待中"
+          />
         </el-col>
         <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card completed-card">
-            <div class="stat-icon completed">
-              <el-icon><Check /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ stats.completed }}</div>
-              <div class="stat-label">已完成</div>
-            </div>
-            <div class="stat-trend">
-              <el-icon class="trend-icon"><TrendCharts /></el-icon>
-            </div>
-          </div>
+          <StatCard
+              type="completed"
+              :icon="Check"
+              :number="stats.completed"
+              label="已完成"
+          />
         </el-col>
         <el-col :xs="12" :sm="6" :lg="3">
-          <div class="stat-card total-card">
-            <div class="stat-icon total">
-              <el-icon><Folder /></el-icon>
-            </div>
-            <div class="stat-content">
-              <div class="stat-number">{{ stats.total }}</div>
-              <div class="stat-label">总流程</div>
-            </div>
-            <div class="stat-trend">
-              <el-icon class="trend-icon"><TrendCharts /></el-icon>
-            </div>
-          </div>
+          <StatCard
+              type="total"
+              :icon="Folder"
+              :number="stats.total"
+              label="总流程"
+          />
         </el-col>
       </el-row>
     </div>
@@ -125,7 +105,9 @@
             <div class="card-header">
               <div class="header-left">
                 <div class="header-icon">
-                  <el-icon><VideoPlay /></el-icon>
+                  <el-icon>
+                    <VideoPlay/>
+                  </el-icon>
                 </div>
                 <div class="header-info">
                   <span class="header-title">活跃流程</span>
@@ -134,17 +116,19 @@
               </div>
               <el-button type="primary" link @click="goToWorkflows">
                 查看全部
-                <el-icon class="ml-1"><ArrowRight /></el-icon>
+                <el-icon class="ml-1">
+                  <ArrowRight/>
+                </el-icon>
               </el-button>
             </div>
           </template>
-          
+
           <div class="workflow-list">
-            <div 
-              v-for="workflow in activeWorkflows" 
-              :key="workflow.id"
-              class="workflow-item"
-              @click="viewWorkflow(workflow.id)"
+            <div
+                v-for="workflow in activeWorkflows"
+                :key="workflow.id"
+                class="workflow-item"
+                @click="viewWorkflow(workflow.id)"
             >
               <div class="workflow-info">
                 <div class="workflow-name">
@@ -155,7 +139,7 @@
                 </div>
                 <div class="workflow-meta">
                   <span class="workflow-time">
-                    <el-icon><Clock /></el-icon>
+                    <el-icon><Clock/></el-icon>
                     {{ formatTime(workflow.updatedAt) }}
                   </span>
                 </div>
@@ -164,23 +148,27 @@
                 <div class="progress-info">
                   <span class="progress-percent">{{ workflow.progress }}%</span>
                 </div>
-                <el-progress 
-                  :percentage="workflow.progress" 
-                  :status="getProgressStatus(workflow.status)"
-                  :stroke-width="6"
-                  :show-text="false"
+                <el-progress
+                    :percentage="workflow.progress"
+                    :status="getProgressStatus(workflow.status)"
+                    :stroke-width="6"
+                    :show-text="false"
                 />
               </div>
             </div>
-            
+
             <div v-if="activeWorkflows.length === 0" class="empty-state">
               <div class="empty-icon">
-                <el-icon size="64"><VideoPlay /></el-icon>
+                <el-icon size="64">
+                  <VideoPlay/>
+                </el-icon>
               </div>
               <h3>暂无活跃流程</h3>
               <p>开始您的第一个AI训练流程</p>
               <el-button type="primary" class="create-btn" @click="createWorkflow">
-                <el-icon><Plus /></el-icon>
+                <el-icon>
+                  <Plus/>
+                </el-icon>
                 创建第一个流程
               </el-button>
             </div>
@@ -196,28 +184,32 @@
             <div class="card-header">
               <div class="header-left">
                 <div class="header-icon upload-icon">
-                  <el-icon><Upload /></el-icon>
+                  <el-icon>
+                    <Upload/>
+                  </el-icon>
                 </div>
                 <div class="header-info">
                   <span class="header-title">上传队列</span>
                   <span class="header-subtitle">{{ uploadStats.uploading + uploadStats.waiting }} 个任务</span>
                 </div>
               </div>
-              <el-tag 
-                :type="uploadQueueStatus.type" 
-                size="small"
-                :class="['status-badge', uploadQueueStatus.type]"
+              <el-tag
+                  :type="uploadQueueStatus.type"
+                  size="small"
+                  :class="['status-badge', uploadQueueStatus.type]"
               >
                 {{ uploadQueueStatus.text }}
               </el-tag>
             </div>
           </template>
-          
+
           <div class="upload-summary">
             <div class="upload-stats">
               <div class="upload-stat">
                 <div class="stat-icon-mini waiting">
-                  <el-icon><Clock /></el-icon>
+                  <el-icon>
+                    <Clock/>
+                  </el-icon>
                 </div>
                 <div class="stat-info">
                   <span class="value">{{ uploadStats.waiting }}</span>
@@ -226,7 +218,9 @@
               </div>
               <div class="upload-stat">
                 <div class="stat-icon-mini uploading">
-                  <el-icon><Loading /></el-icon>
+                  <el-icon>
+                    <Loading/>
+                  </el-icon>
                 </div>
                 <div class="stat-info">
                   <span class="value">{{ uploadStats.uploading }}</span>
@@ -235,7 +229,9 @@
               </div>
               <div class="upload-stat">
                 <div class="stat-icon-mini completed">
-                  <el-icon><Check /></el-icon>
+                  <el-icon>
+                    <Check/>
+                  </el-icon>
                 </div>
                 <div class="stat-info">
                   <span class="value">{{ uploadStats.completed }}</span>
@@ -243,17 +239,17 @@
                 </div>
               </div>
             </div>
-            
+
             <div v-if="uploadStats.uploading > 0" class="upload-progress">
               <div class="progress-header">
                 <span class="progress-title">总体进度</span>
                 <span class="progress-value">{{ globalUploadProgress }}%</span>
               </div>
-              <el-progress 
-                :percentage="globalUploadProgress"
-                :stroke-width="8"
-                :show-text="false"
-                color="#409eff"
+              <el-progress
+                  :percentage="globalUploadProgress"
+                  :stroke-width="8"
+                  :show-text="false"
+                  color="#409eff"
               />
             </div>
           </div>
@@ -265,30 +261,55 @@
             <div class="card-header">
               <div class="header-left">
                 <div class="header-icon system-icon">
-                  <el-icon><Monitor /></el-icon>
+                  <el-icon>
+                    <Monitor/>
+                  </el-icon>
                 </div>
                 <div class="header-info">
                   <span class="header-title">系统状态</span>
                   <span class="header-subtitle">实时监控</span>
                 </div>
               </div>
-              <el-button text @click="refreshSystemStatus" class="refresh-btn">
-                <el-icon><Refresh /></el-icon>
-              </el-button>
+              <div class="system-status-header">
+                <el-tag
+                    :type="$socket?.isConnected() ? 'success' : 'warning'"
+                    size="small"
+                    class="connection-status"
+                >
+                  <el-icon>
+                    <Connection/>
+                  </el-icon>
+                  <span class="ml-1"> {{ $socket?.isConnected() ? '实时监控' : '连接中...' }}</span>
+                </el-tag>
+              </div>
             </div>
           </template>
-          
+
           <div class="system-metrics">
+            <div class="metric-item">
+              <div class="metric-header">
+                <span class="metric-label">CPU使用率</span>
+                <span class="metric-value">{{ systemStatus.cpu }}%</span>
+              </div>
+              <el-progress
+                  :percentage="systemStatus.cpu"
+                  :stroke-width="8"
+                  :status="systemStatus.cpu > 85 ? 'exception' : null"
+                  :show-text="false"
+                  color="#67c23a"
+              />
+            </div>
             <div class="metric-item">
               <div class="metric-header">
                 <span class="metric-label">GPU使用率</span>
                 <span class="metric-value">{{ systemStatus.gpu }}%</span>
               </div>
-              <el-progress 
-                :percentage="systemStatus.gpu" 
-                :stroke-width="8"
-                :status="systemStatus.gpu > 80 ? 'exception' : null"
-                :show-text="false"
+              <el-progress
+                  :percentage="systemStatus.gpu"
+                  :stroke-width="8"
+                  :status="systemStatus.gpu > 80 ? 'exception' : null"
+                  :show-text="false"
+                  color="#e6a23c"
               />
             </div>
             <div class="metric-item">
@@ -296,11 +317,12 @@
                 <span class="metric-label">内存使用</span>
                 <span class="metric-value">{{ systemStatus.memory }}%</span>
               </div>
-              <el-progress 
-                :percentage="systemStatus.memory"
-                :stroke-width="8"
-                :status="systemStatus.memory > 90 ? 'exception' : null"
-                :show-text="false"
+              <el-progress
+                  :percentage="systemStatus.memory"
+                  :stroke-width="8"
+                  :status="systemStatus.memory > 90 ? 'exception' : null"
+                  :show-text="false"
+                  color="#409eff"
               />
             </div>
             <div class="metric-item">
@@ -308,11 +330,12 @@
                 <span class="metric-label">存储空间</span>
                 <span class="metric-value">{{ systemStatus.disk }}%</span>
               </div>
-              <el-progress 
-                :percentage="systemStatus.disk"
-                :stroke-width="8" 
-                :status="systemStatus.disk > 85 ? 'exception' : null"
-                :show-text="false"
+              <el-progress
+                  :percentage="systemStatus.disk"
+                  :stroke-width="8"
+                  :status="systemStatus.disk > 85 ? 'exception' : null"
+                  :show-text="false"
+                  color="#f56c6c"
               />
             </div>
           </div>
@@ -324,7 +347,9 @@
             <div class="card-header">
               <div class="header-left">
                 <div class="header-icon activity-icon">
-                  <el-icon><Bell /></el-icon>
+                  <el-icon>
+                    <Bell/>
+                  </el-icon>
                 </div>
                 <div class="header-info">
                   <span class="header-title">最近活动</span>
@@ -333,16 +358,16 @@
               </div>
             </div>
           </template>
-          
+
           <div class="activity-list">
-            <div 
-              v-for="activity in recentActivities" 
-              :key="activity.id"
-              class="activity-item"
+            <div
+                v-for="activity in recentActivities"
+                :key="activity.id"
+                class="activity-item"
             >
               <div class="activity-icon" :class="activity.type">
                 <el-icon>
-                  <component :is="activity.icon" />
+                  <component :is="activity.icon"/>
                 </el-icon>
               </div>
               <div class="activity-content">
@@ -350,10 +375,12 @@
                 <div class="activity-time">{{ formatTime(activity.time) }}</div>
               </div>
             </div>
-            
+
             <div v-if="recentActivities.length === 0" class="empty-activity">
               <div class="empty-icon">
-                <el-icon size="48"><Bell /></el-icon>
+                <el-icon size="48">
+                  <Bell/>
+                </el-icon>
               </div>
               <p>暂无最近活动</p>
             </div>
@@ -365,19 +392,20 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, inject } from 'vue'
-import { useRouter } from 'vue-router'
-import { 
-  Plus, FolderOpened, VideoPlay, Clock, Check, Folder, Upload, 
+import {ref, reactive, computed, onMounted, onUnmounted, inject} from 'vue'
+import {useRouter} from 'vue-router'
+import {
+  Plus, FolderOpened, VideoPlay, Clock, Check, Folder, Upload,
   Monitor, Refresh, Bell, CircleCheck, Warning, CircleClose,
-  Star, TrendCharts, Minus, ArrowRight, Loading
+  Star, TrendCharts, Minus, ArrowRight, Loading, Connection
 } from '@element-plus/icons-vue'
 import WorkflowStatus from '@/components/WorkflowStatus.vue'
-import { useWorkflowStore } from '@/store/workflow'
-import { useDashboardStore } from '@/store/dashboard'
-import { useUploadStore } from '@/store/upload'
-import { workflowApi } from '@/api/workflow'
-import { request } from '@/utils/request'
+import StatCard from '@/components/StatCard.vue'
+import {useWorkflowStore} from '@/store/workflow'
+import {useDashboardStore} from '@/store/dashboard'
+import {useUploadStore} from '@/store/upload'
+import {workflowApi} from '@/api/workflow'
+import request from '@/utils/request'
 
 const router = useRouter()
 const workflowStore = useWorkflowStore()
@@ -402,6 +430,7 @@ const uploadStats = reactive({
 
 // 系统状态
 const systemStatus = reactive({
+  cpu: 0,
   gpu: 0,
   memory: 0,
   disk: 0
@@ -425,11 +454,11 @@ const globalUploadProgress = computed(() => {
 
 const uploadQueueStatus = computed(() => {
   if (uploadStats.uploading > 0) {
-    return { type: 'primary', text: '上传中' }
+    return {type: 'primary', text: '上传中'}
   } else if (uploadStats.waiting > 0) {
-    return { type: 'warning', text: '等待中' }
+    return {type: 'warning', text: '等待中'}
   } else {
-    return { type: 'success', text: '空闲' }
+    return {type: 'success', text: '空闲'}
   }
 })
 
@@ -448,10 +477,14 @@ const viewWorkflow = (workflowId) => {
 
 const getProgressStatus = (status) => {
   switch (status) {
-    case 'completed': return 'success'
-    case 'failed': return 'exception'
-    case 'paused': return 'warning'
-    default: return null
+    case 'completed':
+      return 'success'
+    case 'failed':
+      return 'exception'
+    case 'paused':
+      return 'warning'
+    default:
+      return null
   }
 }
 
@@ -461,7 +494,7 @@ const formatTime = (date) => {
   const minutes = Math.floor(diff / 60000)
   const hours = Math.floor(minutes / 60)
   const days = Math.floor(hours / 24)
-  
+
   if (days > 0) {
     return `${days}天前`
   } else if (hours > 0) {
@@ -476,67 +509,108 @@ const formatTime = (date) => {
 const refreshSystemStatus = async () => {
   try {
     const response = await request.get('/api/system/status')
-    Object.assign(systemStatus, response)
+    if (response.success) {
+      Object.assign(systemStatus, response.data)
+    }
   } catch (error) {
     console.error('刷新系统状态失败:', error)
   }
 }
 
+// 处理实时系统状态更新
+const handleSystemStatusUpdate = (data) => {
+  // console.log('收到实时系统状态:', data)
+  // 确保数据正确更新到响应式对象
+  systemStatus.cpu = data.cpu || 0
+  systemStatus.memory = data.memory || 0
+  systemStatus.disk = data.disk || 0
+  systemStatus.gpu = data.gpu || 0
+  // console.log('更新后的系统状态:', systemStatus)
+}
+
 const loadDashboardData = async () => {
+  try {
+    // 使用仪表板专用API获取数据
+    const dashboardResponse = await workflowApi.getDashboardData()
+
+    if (dashboardResponse.success) {
+      const data = dashboardResponse.data
+
+      // 更新统计数据
+      Object.assign(stats, data.stats)
+
+      // 更新活跃流程
+      activeWorkflows.value = data.activeWorkflows.map(w => ({
+        ...w,
+        updatedAt: w.updatedAt ? new Date(w.updatedAt) : new Date()
+      }))
+
+      // 更新最近活动
+      recentActivities.value = data.recentActivities.map(activity => ({
+        id: activity.id,
+        type: activity.type,
+        icon: getActivityIcon(activity.type),
+        text: activity.message || `${activity.workflowName} ${getStatusText(activity.status)}`,
+        time: new Date(activity.timestamp)
+      }))
+    }
+
+    // 加载上传队列数据
+    await uploadStore.fetchTasks()
+    Object.assign(uploadStats, uploadStore.taskStats)
+
+    // 加载系统状态
+    await refreshSystemStatus()
+
+  } catch (error) {
+    console.error('加载仪表板数据失败:', error)
+    // 如果API失败，使用备用方法
+    await loadDashboardDataFallback()
+  }
+}
+
+// 备用数据加载方法
+const loadDashboardDataFallback = async () => {
   try {
     // 加载工作流数据
     await workflowStore.fetchWorkflows()
-    
+
     // 计算统计数据
     const workflows = workflowStore.workflows || []
     stats.total = workflows.length
     stats.running = workflows.filter(w => ['TRAINING', 'PROCESSING', 'UPLOADING'].includes(w.status)).length
     stats.waiting = workflows.filter(w => ['CREATED', 'MATERIALS_READY', 'CONFIGURING'].includes(w.status)).length
     stats.completed = workflows.filter(w => w.status === 'COMPLETED').length
-    
+
     // 获取活跃流程（非完成状态的前5个）
     activeWorkflows.value = workflows
-      .filter(w => w.status !== 'COMPLETED' && w.status !== 'CANCELLED')
-      .slice(0, 5)
-      .map(w => ({
-        id: w.id,
-        name: w.name,
-        status: w.status,
-        progress: w.progress?.current || 0,
-        updatedAt: w.updatedAt ? new Date(w.updatedAt) : new Date()
-      }))
-    
-    // 加载上传队列数据
-    const uploadTasks = uploadStore.tasks || []
-    uploadStats.total = uploadTasks.length
-    uploadStats.uploading = uploadTasks.filter(t => t.status === 'uploading').length
-    uploadStats.waiting = uploadTasks.filter(t => t.status === 'waiting').length
-    uploadStats.completed = uploadTasks.filter(t => t.status === 'completed').length
-    
-    // 加载系统状态
-    await refreshSystemStatus()
-    
-    // 模拟最近活动（实际项目中应该从API获取）
-    recentActivities.value = [
-      {
-        id: 1,
-        type: 'success',
-        icon: CircleCheck,
-        text: '工作流状态更新',
-        time: new Date(Date.now() - 300000)
-      },
-      {
-        id: 2,
-        type: 'info', 
-        icon: Upload,
-        text: '文件上传完成',
-        time: new Date(Date.now() - 600000)
-      }
-    ]
-    
+        .filter(w => w.status !== 'COMPLETED' && w.status !== 'CANCELLED')
+        .slice(0, 5)
+        .map(w => ({
+          id: w.id,
+          name: w.name,
+          status: w.status,
+          progress: w.progress?.current || 0,
+          updatedAt: w.updatedAt ? new Date(w.updatedAt) : new Date()
+        }))
+
+    // 清空最近活动
+    recentActivities.value = []
+
   } catch (error) {
-    console.error('加载仪表板数据失败:', error)
+    console.error('备用数据加载失败:', error)
   }
+}
+
+// 根据活动类型获取图标
+const getActivityIcon = (type) => {
+  const iconMap = {
+    'success': CircleCheck,
+    'error': CircleClose,
+    'info': Upload,
+    'warning': Warning
+  }
+  return iconMap[type] || Upload
 }
 
 // Socket.IO事件处理
@@ -547,7 +621,7 @@ const handleWorkflowUpdate = (data) => {
     workflow.status = data.status
     workflow.progress = data.progress || workflow.progress
   }
-  
+
   // 重新计算统计数据
   loadDashboardData()
 }
@@ -592,22 +666,42 @@ const getStatusText = (status) => {
 // 生命周期
 onMounted(() => {
   loadDashboardData()
-  
-  // 设置定时刷新
-  const interval = setInterval(loadDashboardData, 30000) // 30秒刷新一次
-  
+
+  // 设置定时刷新其他数据（减少频率，因为系统状态已实时）
+  const interval = setInterval(() => {
+    // 只刷新工作流和上传数据，系统状态通过Socket实时更新
+    loadDashboardData()
+  }, 60000) // 60秒刷新一次其他数据
+
   // 监听Socket.IO事件
   if ($socket) {
+    // 等待Socket连接成功后再加入系统监控
+    if ($socket.isConnected()) {
+      $socket.joinSystemMonitor()
+    } else {
+      // 如果还没连接，等待连接后再加入
+      $socket.on('connect', () => {
+        $socket.joinSystemMonitor()
+      })
+    }
+
+    // 监听系统状态更新
+    $socket.onSystemStatus(handleSystemStatusUpdate)
+    // 监听其他事件
     $socket.onWorkflowStatusUpdate(handleWorkflowUpdate)
     $socket.onUploadProgress(handleUploadProgress)
   }
-  
-  // 清理定时器
+
+  // 清理定时器和Socket监听
   onUnmounted(() => {
     clearInterval(interval)
     if ($socket) {
-      $socket.off('workflow-status-update', handleWorkflowUpdate)
-      $socket.off('upload-progress', handleUploadProgress)
+      // 离开系统监控
+      $socket.leaveSystemMonitor()
+      // 清除所有监听器
+      $socket.offSystemStatus()
+      $socket.offWorkflowStatusUpdate()
+      $socket.offUploadProgress()
     }
   })
 })
@@ -777,121 +871,16 @@ onMounted(() => {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .stats-section {
   margin-bottom: 20px;
-}
-
-.stat-card {
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--card-color), var(--card-color-light));
-}
-
-.running-card {
-  --card-color: #3b82f6;
-  --card-color-light: #60a5fa;
-}
-
-.waiting-card {
-  --card-color: #f59e0b;
-  --card-color-light: #fbbf24;
-}
-
-.completed-card {
-  --card-color: #10b981;
-  --card-color-light: #34d399;
-}
-
-.total-card {
-  --card-color: #8b5cf6;
-  --card-color-light: #a78bfa;
-}
-
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-}
-
-.stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-  font-size: 20px;
-  position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.stat-icon.running {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  color: #3b82f6;
-}
-
-.stat-icon.waiting {
-  background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
-  color: #f59e0b;
-}
-
-.stat-icon.completed {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  color: #10b981;
-}
-
-.stat-icon.total {
-  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
-  color: #8b5cf6;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-number {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1f2937;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.stat-trend {
-  display: flex;
-  align-items: center;
-  color: #10b981;
-}
-
-.trend-icon {
-  font-size: 20px;
 }
 
 .main-content {
@@ -1358,110 +1347,119 @@ onMounted(() => {
   margin-left: 4px;
 }
 
+.system-status-header {
+  display: flex;
+  align-items: center;
+}
+
+.connection-status {
+  font-size: 11px;
+  border: none;
+  background: rgba(103, 194, 58, 0.1);
+}
+
+.connection-status.el-tag--warning {
+  background: rgba(230, 162, 60, 0.1);
+}
+
+.refresh-btn {
+  color: #606266;
+  padding: 4px;
+}
+
+.refresh-btn:hover {
+  color: #409eff;
+}
+
 @media (max-width: 768px) {
   .dashboard {
     padding: 12px;
     background: #f8fafc;
   }
-  
+
   .welcome-section {
     flex-direction: column;
     text-align: center;
     gap: 16px;
     padding: 16px;
   }
-  
+
   .welcome-content h1 {
     font-size: 20px;
   }
-  
+
   .welcome-visual {
     order: -1;
   }
-  
+
   .visual-decoration {
     display: none;
   }
-  
+
   .stats-section {
     margin-bottom: 24px;
   }
-  
-  .stat-card {
-    padding: 20px;
-  }
-  
-  .stat-icon {
-    width: 48px;
-    height: 48px;
-    font-size: 24px;
-    margin-right: 16px;
-  }
-  
-  .stat-number {
-    font-size: 24px;
-  }
-  
+
   .main-content {
     margin-top: 24px;
   }
-  
+
   .content-card {
     margin-bottom: 20px;
   }
-  
+
   .content-card :deep(.el-card__header) {
     padding: 16px 20px;
   }
-  
+
   .content-card :deep(.el-card__body) {
     padding: 20px;
   }
-  
+
   .workflow-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
     padding: 16px 0;
   }
-  
+
   .workflow-item:hover {
     margin: 0 -20px;
     padding: 16px 20px;
   }
-  
+
   .workflow-progress {
     width: 100%;
     text-align: left;
   }
-  
+
   .upload-stats {
     flex-direction: column;
     gap: 12px;
     margin-bottom: 16px;
   }
-  
+
   .upload-stat {
     padding: 12px;
   }
-  
+
   .system-metrics {
     gap: 16px;
   }
-  
+
   .metric-item {
     padding: 12px;
   }
-  
+
   .activity-list {
     gap: 12px;
     max-height: 250px;
   }
-  
+
   .activity-item {
     padding: 10px;
   }
-  
+
   .activity-icon {
     width: 32px;
     height: 32px;
@@ -1473,50 +1471,36 @@ onMounted(() => {
   .dashboard {
     padding: 12px;
   }
-  
+
   .welcome-section {
     padding: 20px 16px;
   }
-  
+
   .welcome-content h1 {
     font-size: 24px;
   }
-  
+
   .quick-actions {
     flex-direction: column;
     gap: 12px;
     width: 100%;
   }
-  
+
   .action-btn {
     width: 100%;
   }
-  
-  .stat-card {
-    padding: 16px;
-  }
-  
-  .stat-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
-    margin-right: 12px;
-  }
-  
-  .stat-number {
-    font-size: 20px;
-  }
-  
+
+
   .header-icon {
     width: 32px;
     height: 32px;
     font-size: 16px;
   }
-  
+
   .header-title {
     font-size: 14px;
   }
-  
+
   .header-subtitle {
     font-size: 11px;
   }

@@ -231,6 +231,31 @@
                   </el-row>
                 </div>
 
+                <div class="form-section">
+                  <h4 class="section-title">路径配置</h4>
+                  <el-row :gutter="24">
+                    <el-col :span="24">
+                      <el-form-item label="DeepFaceLab目录">
+                        <div class="form-item-wrapper">
+                          <el-input 
+                            v-model="trainingConfig.deepfacelabDir" 
+                            placeholder="请输入DeepFaceLab的安装目录路径，例如：D:/DeepFaceLab"
+                            class="full-width-input"
+                          >
+                            <template #append>
+                              <el-button @click="selectDeepFaceLabDir">
+                                <el-icon><FolderOpened /></el-icon>
+                                浏览
+                              </el-button>
+                            </template>
+                          </el-input>
+                          <div class="form-help">DeepFaceLab软件的安装目录，用于执行训练脚本</div>
+                        </div>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                </div>
+
                 <div class="form-actions">
                   <el-button type="primary" @click="saveTrainingConfig" class="save-btn">
                     <el-icon><Check /></el-icon>
@@ -248,152 +273,70 @@
 
         <!-- 系统信息 -->
         <el-tab-pane label="系统信息" name="system">
-          <div class="tab-content">
-            <el-row :gutter="24">
-              <el-col :span="12">
-                <el-card class="info-card" shadow="never">
-                  <template #header>
-                    <div class="card-header">
-                      <div class="header-left">
-                        <div class="header-icon system-icon">
-                          <el-icon><Monitor /></el-icon>
-                        </div>
-                        <div class="header-info">
-                          <span class="header-title">系统状态</span>
-                          <span class="header-subtitle">实时系统运行状态</span>
-                        </div>
-                      </div>
+          <div class="tab-content system-tab-content">
+            <!-- 系统状态监控 - 全宽显示 -->
+            <div class="system-status-wrapper">
+              <DashboardSystemStatus :show-connection="true" :show-uptime="true" />
+            </div>
+            
+            <!-- 版本信息 -->
+            <el-card class="info-card" shadow="never">
+              <template #header>
+                <div class="card-header">
+                  <div class="header-left">
+                    <div class="header-icon version-icon">
+                      <el-icon><InfoFilled /></el-icon>
                     </div>
-                  </template>
-
-                  <div class="info-content">
-                    <div class="info-item">
-                      <div class="info-icon">
-                        <el-icon><Timer /></el-icon>
-                      </div>
-                      <div class="info-details">
-                        <span class="info-label">运行时间</span>
-                        <span class="info-value">{{ systemInfo.uptime }}</span>
-                      </div>
-                    </div>
-                    
-                    <div class="info-item">
-                      <div class="info-icon cpu-icon">
-                        <el-icon><Cpu /></el-icon>
-                      </div>
-                      <div class="info-details">
-                        <span class="info-label">CPU使用率</span>
-                        <div class="progress-wrapper">
-                          <span class="info-value">{{ systemInfo.cpuUsage }}%</span>
-                          <el-progress 
-                            :percentage="systemInfo.cpuUsage" 
-                            :stroke-width="6"
-                            :show-text="false"
-                            :color="getProgressColor(systemInfo.cpuUsage)"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div class="info-item">
-                      <div class="info-icon memory-icon">
-                        <el-icon><DataLine /></el-icon>
-                      </div>
-                      <div class="info-details">
-                        <span class="info-label">内存使用</span>
-                        <div class="progress-wrapper">
-                          <span class="info-value">{{ systemInfo.memoryUsage }}%</span>
-                          <el-progress 
-                            :percentage="systemInfo.memoryUsage" 
-                            :stroke-width="6"
-                            :show-text="false"
-                            :color="getProgressColor(systemInfo.memoryUsage)"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div class="info-item">
-                      <div class="info-icon disk-icon">
-                        <el-icon><Folder /></el-icon>
-                      </div>
-                      <div class="info-details">
-                        <span class="info-label">磁盘使用</span>
-                        <div class="progress-wrapper">
-                          <span class="info-value">{{ systemInfo.diskUsage }}%</span>
-                          <el-progress 
-                            :percentage="systemInfo.diskUsage" 
-                            :stroke-width="6"
-                            :show-text="false"
-                            :color="getProgressColor(systemInfo.diskUsage)"
-                          />
-                        </div>
-                      </div>
+                    <div class="header-info">
+                      <span class="header-title">版本信息</span>
+                      <span class="header-subtitle">系统版本和构建信息</span>
                     </div>
                   </div>
-                </el-card>
-              </el-col>
-              
-              <el-col :span="12">
-                <el-card class="info-card" shadow="never">
-                  <template #header>
-                    <div class="card-header">
-                      <div class="header-left">
-                        <div class="header-icon version-icon">
-                          <el-icon><InfoFilled /></el-icon>
-                        </div>
-                        <div class="header-info">
-                          <span class="header-title">版本信息</span>
-                          <span class="header-subtitle">系统版本和构建信息</span>
-                        </div>
-                      </div>
-                    </div>
-                  </template>
+                </div>
+              </template>
 
-                  <div class="info-content">
-                    <div class="info-item">
-                      <div class="info-icon">
-                        <el-icon><Platform /></el-icon>
-                      </div>
-                      <div class="info-details">
-                        <span class="info-label">系统版本</span>
-                        <span class="info-value version-badge">v1.0.0</span>
-                      </div>
-                    </div>
-                    
-                    <div class="info-item">
-                      <div class="info-icon">
-                        <el-icon><Tools /></el-icon>
-                      </div>
-                      <div class="info-details">
-                        <span class="info-label">Node.js</span>
-                        <span class="info-value">{{ systemInfo.nodeVersion }}</span>
-                      </div>
-                    </div>
-                    
-                    <div class="info-item">
-                      <div class="info-icon">
-                        <el-icon><Calendar /></el-icon>
-                      </div>
-                      <div class="info-details">
-                        <span class="info-label">构建时间</span>
-                        <span class="info-value">2024-12-04</span>
-                      </div>
-                    </div>
-                    
-                    <div class="info-item">
-                      <div class="info-icon">
-                        <el-icon><Connection /></el-icon>
-                      </div>
-                      <div class="info-details">
-                        <span class="info-label">运行环境</span>
-                        <span class="info-value">Production</span>
-                      </div>
-                    </div>
+              <div class="info-content">
+                <div class="info-item">
+                  <div class="info-icon">
+                    <el-icon><Platform /></el-icon>
                   </div>
-                </el-card>
-              </el-col>
-            </el-row>
+                  <div class="info-details">
+                    <span class="info-label">系统版本</span>
+                    <span class="info-value version-badge">v1.0.0</span>
+                  </div>
+                </div>
+                
+                <div class="info-item">
+                  <div class="info-icon">
+                    <el-icon><Tools /></el-icon>
+                  </div>
+                  <div class="info-details">
+                    <span class="info-label">Node.js</span>
+                    <span class="info-value">{{ systemInfo.nodeVersion }}</span>
+                  </div>
+                </div>
+                
+                <div class="info-item">
+                  <div class="info-icon">
+                    <el-icon><Calendar /></el-icon>
+                  </div>
+                  <div class="info-details">
+                    <span class="info-label">构建时间</span>
+                    <span class="info-value">2024-12-04</span>
+                  </div>
+                </div>
+                
+                <div class="info-item">
+                  <div class="info-icon">
+                    <el-icon><Connection /></el-icon>
+                  </div>
+                  <div class="info-details">
+                    <span class="info-label">运行环境</span>
+                    <span class="info-value">Production</span>
+                  </div>
+                </div>
+              </div>
+            </el-card>
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -406,8 +349,10 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { 
   Setting, Download, Upload, Check, RefreshLeft, Cpu, Monitor, 
-  Timer, DataLine, Folder, InfoFilled, Platform, Tools, Calendar, Connection
+  Timer, DataLine, Folder, InfoFilled, Platform, Tools, Calendar, Connection, FolderOpened
 } from '@element-plus/icons-vue'
+import { settingsApi } from '@/api/settings'
+import DashboardSystemStatus from '@/components/DashboardSystemStatus.vue'
 
 const activeTab = ref('upload')
 
@@ -425,51 +370,50 @@ const trainingConfig = ref({
   defaultEpochs: 1000,
   batchSize: 4,
   learningRate: 0.0002,
-  gpuDevice: 'auto'
+  gpuDevice: 'auto',
+  deepfacelabDir: ''
 })
 
 // 系统信息
 const systemInfo = ref({
-  uptime: '2天 14小时',
-  cpuUsage: 65,
-  memoryUsage: 48,
-  diskUsage: 23,
-  nodeVersion: 'v18.0.0'
+  nodeVersion: 'v22.14.0'
 })
 
 onMounted(() => {
   loadConfigs()
-  loadSystemInfo()
 })
 
 const loadConfigs = async () => {
   try {
-    // 加载配置数据
-    // const response = await fetch('/api/config')
-    // const configs = await response.json()
-    // uploadConfig.value = configs.upload
-    // trainingConfig.value = configs.training
+    // 加载上传配置
+    const uploadResponse = await settingsApi.getUploadConfig()
+    if (uploadResponse.success) {
+      uploadConfig.value = { ...uploadConfig.value, ...uploadResponse.data }
+    }
+
+    // 加载训练配置
+    const trainingResponse = await settingsApi.getTrainingConfig()
+    if (trainingResponse.success) {
+      trainingConfig.value = { ...trainingConfig.value, ...trainingResponse.data }
+    }
   } catch (error) {
     console.error('加载配置失败:', error)
+    ElMessage.warning('配置加载失败，使用默认配置')
   }
 }
 
-const loadSystemInfo = async () => {
-  try {
-    // 加载系统信息
-    // const response = await fetch('/api/system/info')
-    // const info = await response.json()
-    // systemInfo.value = info
-  } catch (error) {
-    console.error('加载系统信息失败:', error)
-  }
-}
+
 
 const saveUploadConfig = async () => {
   try {
-    // 保存上传配置
-    ElMessage.success('上传配置保存成功')
+    const response = await settingsApi.saveUploadConfig(uploadConfig.value)
+    if (response.success) {
+      ElMessage.success('上传配置保存成功')
+    } else {
+      ElMessage.error(response.message || '保存失败')
+    }
   } catch (error) {
+    console.error('保存配置失败:', error)
     ElMessage.error('保存失败')
   }
 }
@@ -487,9 +431,14 @@ const resetUploadConfig = () => {
 
 const saveTrainingConfig = async () => {
   try {
-    // 保存训练配置
-    ElMessage.success('训练配置保存成功')
+    const response = await settingsApi.saveTrainingConfig(trainingConfig.value)
+    if (response.success) {
+      ElMessage.success('训练配置保存成功')
+    } else {
+      ElMessage.error(response.message || '保存失败')
+    }
   } catch (error) {
+    console.error('保存配置失败:', error)
     ElMessage.error('保存失败')
   }
 }
@@ -499,9 +448,16 @@ const resetTrainingConfig = () => {
     defaultEpochs: 1000,
     batchSize: 4,
     learningRate: 0.0002,
-    gpuDevice: 'auto'
+    gpuDevice: 'auto',
+    deepfacelabDir: ''
   }
   ElMessage.success('配置已重置')
+}
+
+const selectDeepFaceLabDir = () => {
+  // 由于浏览器安全限制，无法直接访问文件系统
+  // 这里提供一个提示，用户需要手动输入路径
+  ElMessage.info('请手动输入DeepFaceLab的安装目录路径，例如：D:/DeepFaceLab 或 /home/user/DeepFaceLab')
 }
 
 const exportSettings = () => {
@@ -513,15 +469,13 @@ const importSettings = () => {
   // 导入设置
   ElMessage.success('配置导入成功')
 }
-
-const getProgressColor = (percentage) => {
-  if (percentage <= 50) return '#10b981'
-  if (percentage <= 80) return '#f59e0b'
-  return '#ef4444'
-}
 </script>
 
 <style scoped>
+:deep(.el-tabs__active-bar){
+  background-color : rgba(79, 70, 229, 0);
+}
+
 .settings-page {
   padding: 16px;
   background: #f8fafc;
@@ -640,6 +594,21 @@ const getProgressColor = (percentage) => {
 
 .tab-content {
   padding: 24px;
+}
+
+/* 系统信息标签页特殊样式 */
+.system-tab-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.system-status-wrapper {
+  /* 移除标签页的内边距影响，让系统状态组件完全按照仪表板样式显示 */
+  margin: -24px -24px 0 -24px;
+  padding: 24px;
+  background: transparent;
 }
 
 .config-card, .info-card {

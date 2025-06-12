@@ -1,5 +1,5 @@
 <template>
-  <div class="workflow-detail">
+  <div class="workflow-detail" v-loading="loading">
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
@@ -86,10 +86,10 @@
             <div class="progress-section">
               <div class="progress-info">
                 <span>整体进度</span>
-                <span>{{ workflow.progress || 0 }}%</span>
+                <span>{{ (typeof workflow.progress === 'object' ? workflow.progress.current : workflow.progress) || 0 }}%</span>
               </div>
               <el-progress 
-                :percentage="workflow.progress || 0"
+                :percentage="(typeof workflow.progress === 'object' ? workflow.progress.current : workflow.progress) || 0"
                 :status="getProgressStatus(workflow.status)"
                 :stroke-width="8"
               />
@@ -305,6 +305,7 @@ import {
   Picture, View, Delete, Refresh, Download, RefreshRight, VideoPause, 
   CopyDocument, Upload
 } from '@element-plus/icons-vue'
+import { workflowApi } from '@/api/workflow'
 
 const router = useRouter()
 const route = useRoute()
@@ -313,106 +314,127 @@ const route = useRoute()
 const activeTab = ref('materials')
 const autoScrollLogs = ref(true)
 const logViewerRef = ref(null)
+const loading = ref(false)
 
 // 工作流数据
 const workflow = ref({
   id: route.params.id,
-  name: '明星换脸直播训练',
-  description: '为直播平台训练明星换脸模型',
-  status: 'TRAINING',
-  progress: 65,
-  priority: 'high',
-  faceSourceCount: 15,
-  modelCount: 8,
-  createdAt: '2024-12-11T10:30:00Z',
-  startedAt: '2024-12-11T10:35:00Z',
+  name: '',
+  description: '',
+  status: '',
+  progress: { current: 0, total: 100 },
+  priority: 'normal',
+  faceSourceCount: 0,
+  modelCount: 0,
+  createdAt: '',
+  startedAt: '',
+  completedAt: '',
   config: {
-    template: '快速训练',
-    targetImageCount: 500
+    template: '',
+    targetImageCount: 0
   }
 })
 
 // 时间轴数据
-const timeline = ref([
-  {
-    id: 1,
-    time: '2024-12-11 10:30',
-    type: 'primary',
-    icon: 'Plus',
-    description: '创建训练流程'
-  },
-  {
-    id: 2,
-    time: '2024-12-11 10:32',
-    type: 'success',
-    icon: 'Upload',
-    description: '上传脸源素材 (15个文件)'
-  },
-  {
-    id: 3,
-    time: '2024-12-11 10:35',
-    type: 'warning',
-    icon: 'VideoPlay',
-    description: '开始训练过程'
-  }
-])
+const timeline = ref([])
 
 // 素材文件数据
-const faceSourceFiles = ref([
-  {
-    id: 1,
-    name: 'face_001.jpg',
-    size: 2048576,
-    thumbnail: '/api/files/thumbnails/face_001.jpg'
-  },
-  {
-    id: 2,
-    name: 'face_002.jpg', 
-    size: 1856432,
-    thumbnail: '/api/files/thumbnails/face_002.jpg'
-  }
-])
-
-const modelFiles = ref([
-  {
-    id: 1,
-    name: 'model_video.mp4',
-    size: 52428800,
-    thumbnail: '/api/files/thumbnails/model_video.jpg'
-  }
-])
+const faceSourceFiles = ref([])
+const modelFiles = ref([])
 
 // 日志数据
-const logs = ref([
-  {
-    id: 1,
-    timestamp: '2024-12-11T10:35:01Z',
-    level: 'info',
-    message: '开始初始化训练环境...'
-  },
-  {
-    id: 2,
-    timestamp: '2024-12-11T10:35:15Z',
-    level: 'info',
-    message: '加载脸源素材文件 (15个)'
-  },
-  {
-    id: 3,
-    timestamp: '2024-12-11T10:36:30Z',
-    level: 'warning',
-    message: 'GPU内存使用率: 78%'
-  },
-  {
-    id: 4,
-    timestamp: '2024-12-11T10:37:45Z',
-    level: 'info',
-    message: '训练进度: 第1轮/100轮 完成'
-  }
-])
+const logs = ref([])
 
 // 方法定义
 const goBack = () => {
   router.push('/workflows')
+}
+
+// 加载工作流详情数据
+const loadWorkflowDetail = async () => {
+  if (!route.params.id) {
+    ElMessage.error('工作流ID不存在')
+    goBack()
+    return
+  }
+
+  loading.value = true
+  try {
+    // 获取工作流详情
+    const response = await workflowApi.get(route.params.id)
+    if (response.success) {
+      const data = response.data
+      workflow.value = {
+        ...workflow.value,
+        ...data,
+        // 确保progress格式正确
+        progress: data.progress || { current: 0, total: 100 }
+      }
+      
+      // 处理素材文件
+      if (data.materials) {
+        faceSourceFiles.value = data.materials.faceSource || []
+        modelFiles.value = data.materials.model || []
+      }
+      
+      // 处理时间轴数据
+      if (data.timeline) {
+        timeline.value = data.timeline
+      } else {
+        // 如果没有时间轴数据，根据状态生成基本时间轴
+        generateTimeline(data)
+      }
+      
+      // 处理日志数据
+      if (data.logs) {
+        logs.value = data.logs
+      }
+    } else {
+      ElMessage.error(response.message || '获取工作流详情失败')
+    }
+  } catch (error) {
+    console.error('加载工作流详情失败:', error)
+    ElMessage.error('加载工作流详情失败: ' + (error.message || '未知错误'))
+  } finally {
+    loading.value = false
+  }
+}
+
+// 生成基本时间轴
+const generateTimeline = (workflowData) => {
+  const timelineItems = []
+  
+  if (workflowData.createdAt) {
+    timelineItems.push({
+      id: 1,
+      time: formatTime(workflowData.createdAt),
+      type: 'primary',
+      icon: 'Plus',
+      description: '创建训练流程'
+    })
+  }
+  
+  if (workflowData.startedAt) {
+    timelineItems.push({
+      id: 2,
+      time: formatTime(workflowData.startedAt),
+      type: 'warning',
+      icon: 'VideoPlay',
+      description: '开始训练过程'
+    })
+  }
+  
+  if (workflowData.completedAt) {
+    timelineItems.push({
+      id: 3,
+      time: formatTime(workflowData.completedAt),
+      type: workflowData.status === 'COMPLETED' ? 'success' : 'danger',
+      icon: workflowData.status === 'COMPLETED' ? 'Check' : 'Close',
+      description: workflowData.status === 'COMPLETED' ? '训练完成' : '训练失败'
+    })
+  }
+  
+  timeline.value = timelineItems
 }
 
 const handleAction = async (command) => {
@@ -444,10 +466,18 @@ const retryTraining = async () => {
       type: 'info'
     })
     
-    ElMessage.success('重新训练已启动')
-    // TODO: 调用重试API
+    // 调用重试API
+    const response = await workflowApi.updateStatus(workflow.value.id, 'CREATED', '重新开始训练')
+    if (response.success) {
+      ElMessage.success('重新训练已启动')
+      await loadWorkflowDetail() // 重新加载数据
+    } else {
+      ElMessage.error(response.message || '重试失败')
+    }
   } catch (error) {
-    // 用户取消
+    if (error.message && !error.message.includes('cancel')) {
+      ElMessage.error('重试失败: ' + error.message)
+    }
   }
 }
 
@@ -487,10 +517,18 @@ const deleteWorkflow = async () => {
       { type: 'warning' }
     )
     
-    ElMessage.success('删除成功')
-    router.push('/workflows')
+    // 调用删除API
+    const response = await workflowApi.delete(workflow.value.id)
+    if (response.success) {
+      ElMessage.success('删除成功')
+      router.push('/workflows')
+    } else {
+      ElMessage.error(response.message || '删除失败')
+    }
   } catch (error) {
-    // 用户取消
+    if (error.message && !error.message.includes('cancel')) {
+      ElMessage.error('删除失败: ' + error.message)
+    }
   }
 }
 
@@ -520,9 +558,21 @@ const deleteFile = async (file) => {
   }
 }
 
-const refreshLogs = () => {
-  ElMessage.success('日志已刷新')
-  // TODO: 重新获取日志
+const refreshLogs = async () => {
+  try {
+    // 重新加载工作流详情，包括最新的日志
+    await loadWorkflowDetail()
+    ElMessage.success('日志已刷新')
+    
+    // 如果开启了自动滚动，滚动到底部
+    if (autoScrollLogs.value) {
+      nextTick(() => {
+        scrollLogsToBottom()
+      })
+    }
+  } catch (error) {
+    ElMessage.error('刷新日志失败: ' + (error.message || '未知错误'))
+  }
 }
 
 const downloadLogs = () => {
@@ -592,7 +642,10 @@ const getDuration = (workflow) => {
 }
 
 // 生命周期
-onMounted(() => {
+onMounted(async () => {
+  // 加载工作流详情数据
+  await loadWorkflowDetail()
+  
   // 如果是日志标签页且开启了自动滚动，滚动到底部
   if (activeTab.value === 'logs' && autoScrollLogs.value) {
     nextTick(() => {

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { workflowApi } from '@/api/workflow'
+import { trainingApi } from '@/api/training'
 import { ElMessage } from 'element-plus'
 
 export const useWorkflowStore = defineStore('workflow', () => {
@@ -9,6 +10,8 @@ export const useWorkflowStore = defineStore('workflow', () => {
   const currentWorkflow = ref(null)
   const loading = ref(false)
   const createLoading = ref(false)
+  const trainTypes = ref([])
+  const trainTypeLoading = ref(false)
 
   // 计算属性
   const trainingWorkflows = computed(() => 
@@ -21,6 +24,14 @@ export const useWorkflowStore = defineStore('workflow', () => {
   
   const isTrainingRunning = computed(() => 
     trainingWorkflows.value.length > 0
+  )
+  
+  const faceSwapWorkflows = computed(() => 
+    workflows.value.filter(w => w.type === 'face_swap')
+  )
+  
+  const faceExtractWorkflows = computed(() => 
+    workflows.value.filter(w => w.type === 'face_extract')
   )
 
   // 动作
@@ -146,6 +157,50 @@ export const useWorkflowStore = defineStore('workflow', () => {
   const clearCurrentWorkflow = () => {
     currentWorkflow.value = null
   }
+  
+  // 获取支持的训练类型
+  const fetchTrainTypes = async () => {
+    try {
+      trainTypeLoading.value = true
+      const response = await trainingApi.getTypes()
+      
+      if (response && response.success) {
+        trainTypes.value = response.types
+        return response.types
+      }
+      return []
+    } catch (error) {
+      console.error('获取训练类型失败:', error)
+      ElMessage.error(error.message || '获取训练类型失败')
+      return []
+    } finally {
+      trainTypeLoading.value = false
+    }
+  }
+  
+  // 验证工作流素材是否符合训练类型要求
+  const validateWorkflowMaterials = async (workflowId, type) => {
+    try {
+      const response = await trainingApi.validateMaterials(workflowId, type)
+      return response.validation
+    } catch (error) {
+      console.error('验证素材失败:', error)
+      ElMessage.error(error.message || '验证素材失败')
+      return { valid: false, message: error.message || '验证素材失败' }
+    }
+  }
+  
+  // 根据训练类型获取素材要求
+  const getTrainingRequirements = async (type) => {
+    try {
+      const response = await trainingApi.getRequirements(type)
+      return response.requirements
+    } catch (error) {
+      console.error('获取训练要求失败:', error)
+      ElMessage.error(error.message || '获取训练要求失败')
+      return null
+    }
+  }
 
   return {
     // 状态
@@ -153,11 +208,15 @@ export const useWorkflowStore = defineStore('workflow', () => {
     currentWorkflow,
     loading,
     createLoading,
+    trainTypes,
+    trainTypeLoading,
     
     // 计算属性
     trainingWorkflows,
     completedWorkflows,
     isTrainingRunning,
+    faceSwapWorkflows,
+    faceExtractWorkflows,
     
     // 动作
     fetchWorkflows,
@@ -167,6 +226,9 @@ export const useWorkflowStore = defineStore('workflow', () => {
     deleteWorkflow,
     updateWorkflowStatus,
     setCurrentWorkflow,
-    clearCurrentWorkflow
+    clearCurrentWorkflow,
+    fetchTrainTypes,
+    validateWorkflowMaterials,
+    getTrainingRequirements
   }
 }) 
